@@ -89,3 +89,17 @@ swift test
 The tests build a small synthetic archive. They cover the curation order,
 HTML rendering, syntax highlighting, and an end-to-end PDF generation that
 checks the outline, link destinations, and per-page text.
+
+## Requirements
+
+The following technologies are needed to build the _docc2pdf_ command-line tool.
+The command-line tool can both be built either using _Xcode_ or the _Swift Package Manager_.
+
+- [Xcode 16](https://developer.apple.com/xcode/)
+- [Swift 6](https://developer.apple.com/swift/)
+- [Swift Package Manager](https://swift.org/package-manager/)
+
+## Copyright
+
+Author: Matthias Zenger (<matthias@objecthub.com>)  
+Copyright © 2026 Matthias Zenger. All rights reserved.

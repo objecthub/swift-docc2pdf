@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-`docc2pdf` is a macOS command-line tool, written in Swift, that converts a DocC archive (`.doccarchive`) into a paginated PDF. The PDF has a cover page, a table of contents (TOC) with page numbers, an outline (bookmarks), clickable internal and external links, running headers, and page numbers. The README covers user-facing usage. This file records the design, the invariants, and the hard-won findings you need when extending the tool or fixing bugs.
+`docc2pdf` is a macOS command-line tool, written in Swift 6, that converts a DocC archives (`.doccarchive`) into paginated PDFs. The PDFs have a cover page, a table of contents (TOC) with page numbers, an outline (bookmarks), clickable internal and external links, running headers, and page numbers. The README covers user-facing usage. This file records the design, the invariants, and the hard-won findings you need when extending the tool or fixing bugs.
 
 ## Commands
 
@@ -11,9 +11,9 @@ swift test                       # Swift Testing suite (includes an end-to-end P
 .build/debug/docc2pdf Samples/YamlKit.doccarchive -o /tmp/y.pdf -v --save-html /tmp/y.html
 ```
 
-- `Samples/YamlKit.doccarchive` is a real archive provided by the user: 645 render JSON pages, about 256 PDF pages. Use it as the main regression input. A good release run takes about 1.5 s and produces about 2 MB, with 2,992 links, 840 outline items, and no broken links.
+- `Samples/YamlKit.doccarchive` is a real archive: 645 render JSON pages, about 256 PDF pages. Use it as the main regression input. A good release run takes about 1.5 s and produces about 2 MB, with 2,992 links, 840 outline items, and no broken links.
 - Debug builds print the WebKit log line "Inspection is enabled by default…" to stderr. It's harmless and doesn't appear in release builds.
-- Toolchain: Swift 6 language mode with strict concurrency, macOS 13+, dependencies `swift-argument-parser` (CLI) and `swift-dynamicjson` (the user's own `DynamicJSON` library, which provides the `JSON` type). Write all code warning-free.
+- Toolchain: Swift 6 language mode with strict concurrency, macOS 13+, dependencies `swift-argument-parser` (CLI) and `swift-dynamicjson` (the `DynamicJSON` framework provides the `JSON` type). Write all code warning-free.
 - Commit only when the user asks.
 
 ## Layout
@@ -161,7 +161,7 @@ Tests/DoccToPdfCoreTests/
 
 ## Pitfalls
 
-- Render JSON uses `JSON` from **DynamicJSON**; don't reintroduce an ad hoc JSON type.
+- Render JSON uses `JSON` from **DynamicJSON** and does not reintroduce an ad hoc JSON type.
   - Navigate it with `json["key"]`, `json[index]`, `stringValue`, `intValue`, `boolValue`, `arrayValue`, `objectValue`, `doubleValue`, and `items`.
   - Numbers are `.integer(Int64)` or `.float(Double)`, and `intValue` is nil for floats.
   - `JSON` is `@dynamicMemberLookup`, so a misspelled accessor such as `json.string` still **compiles** as a member lookup and silently returns nil. Always use the `…Value` accessors.
