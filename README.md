@@ -15,11 +15,6 @@ The generated PDF contains:
   images (light, high-resolution variants), and tutorials (steps, code files,
   assessments).
 
-## Requirements
-
-- macOS 13 or later
-- Swift 6 toolchain (Xcode 16 or later)
-
 ## Building
 
 ```bash
@@ -95,9 +90,10 @@ checks the outline, link destinations, and per-page text.
 The following technologies are needed to build the _docc2pdf_ command-line tool.
 The command-line tool can both be built either using _Xcode_ or the _Swift Package Manager_.
 
-- [Xcode 16](https://developer.apple.com/xcode/)
+- [Xcode 16](https://developer.apple.com/xcode/) (optional)
 - [Swift 6](https://developer.apple.com/swift/)
 - [Swift Package Manager](https://swift.org/package-manager/)
+- macOS 13 or later
 
 ## Copyright
 
