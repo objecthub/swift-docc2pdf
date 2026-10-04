@@ -71,7 +71,9 @@ public final class PDFGenerator {
     let webView = try await loadInWebView(html: html)
     log("Paginating…")
     let pagination: Pagination = try await callScript(
-      webView, "return __pager.paginate(pageHeight)", arguments: ["pageHeight": options.contentHeight])
+      webView,
+      "return __pager.paginate(pageHeight)",
+      arguments: ["pageHeight": options.contentHeight])
     log("Rendering \(pagination.pageCount) pages…")
     let output = NSMutableData()
     var mediaBox = CGRect(x: 0, y: 0, width: options.paper.width, height: options.paper.height)
@@ -81,13 +83,22 @@ public final class PDFGenerator {
       kCGPDFContextSubject: "Documentation generated from \(archive.url.lastPathComponent)",
     ]
     guard let consumer = CGDataConsumer(data: output),
-          let context = CGContext(consumer: consumer, mediaBox: &mediaBox, info as CFDictionary) else {
+          let context = CGContext(consumer: consumer,
+                                  mediaBox: &mediaBox,
+                                  info as CFDictionary) else {
       throw DoccToPdfError.renderingFailed("Could not create a PDF context.")
     }
-    var outlineTargets = Set(model.orderedNodes.flatMap { [$0.anchorID] + $0.groups.map(\.anchorID) })
+    var outlineTargets = Set(model.orderedNodes.flatMap { node in
+      [node.anchorID] + node.groups.map(\.anchorID)
+    })
     outlineTargets.insert("toc")
-    let state = RenderState(destinationNames: Set(pagination.linkTargets), outlineTargets: outlineTargets)
-    try await renderPages(webView, pagination: pagination, title: renderer.documentTitle, into: context, state: state)
+    let state = RenderState(destinationNames: Set(pagination.linkTargets),
+                            outlineTargets: outlineTargets)
+    try await renderPages(webView,
+                          pagination: pagination,
+                          title: renderer.documentTitle,
+                          into: context,
+                          state: state)
     if let outline = makeOutline(model: model, state: state) {
       CGPDFContextSetOutline(context, outline as CFDictionary)
     }
@@ -146,7 +157,8 @@ public final class PDFGenerator {
     let file = directory.appendingPathComponent("index.html")
     try html.write(to: file, atomically: true, encoding: .utf8)
     
-    let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: options.contentWidth, height: options.contentHeight))
+    let frame = CGRect(x: 0, y: 0, width: options.contentWidth, height: options.contentHeight)
+    let webView = WKWebView(frame: frame)
     webView.appearance = NSAppearance(named: .aqua)
     let delegate = NavigationDelegate()
     webView.navigationDelegate = delegate
@@ -156,14 +168,17 @@ public final class PDFGenerator {
       webView.loadFileURL(file, allowingReadAccessTo: URL(fileURLWithPath: "/"))
     }
     webView.navigationDelegate = nil
-    _ = try await webView.callAsyncJavaScript(PaginationScript.waitForResources, contentWorld: .page)
+    _ = try await webView.callAsyncJavaScript(PaginationScript.waitForResources,
+                                              contentWorld: .page)
     _ = try await webView.evaluateJavaScript(PaginationScript.install)
     return webView
   }
   
   private func callScript<T: Decodable>(_ webView: WKWebView, _ body: String,
                                         arguments: [String: Any] = [:]) async throws -> T {
-    let result = try await webView.callAsyncJavaScript(body, arguments: arguments, contentWorld: .page)
+    let result = try await webView.callAsyncJavaScript(body,
+                                                       arguments: arguments,
+                                                       contentWorld: .page)
     guard let json = result as? String, let data = json.data(using: .utf8) else {
       throw DoccToPdfError.renderingFailed("The pagination script returned no result.")
     }
@@ -192,7 +207,8 @@ public final class PDFGenerator {
       _ = try await webView.callAsyncJavaScript("return __pager.resetBatch()", contentWorld: .page)
       guard let provider = CGDataProvider(data: exported as CFData),
             let source = CGPDFDocument(provider), source.numberOfPages > 0 else {
-        throw DoccToPdfError.renderingFailed("WebKit did not produce a PDF for pages \(first + 1)–\(last + 1).")
+        throw DoccToPdfError.renderingFailed(
+          "WebKit did not produce a PDF for pages \(first + 1)–\(last + 1).")
       }
       // Document range covered by each exported page (normally one per document page).
       var sourcePages: [(page: CGPDFPage, top: Double, box: CGRect)] = []
@@ -217,25 +233,33 @@ public final class PDFGenerator {
           context.clip(to: CGRect(x: margin, y: paper.height - margin - (end - start),
                                   width: options.contentWidth, height: end - start))
           // Map document position `start` to the top of the text column.
-          context.translateBy(x: margin - source.box.minX,
-                              y: paper.height - margin + start - source.box.height - source.top - source.box.minY)
+          let shift = paper.height - margin + start - source.box.height - source.top
+          context.translateBy(x: margin - source.box.minX, y: shift - source.box.minY)
           context.drawPDFPage(source.page)
           context.restoreGState()
         }
-        drawPageFurniture(in: context, pageIndex: index, runningTitle: batch.running[offset], title: title)
+        drawPageFurniture(in: context,
+                          pageIndex: index,
+                          runningTitle: batch.running[offset],
+                          title: title)
         for (id, target) in targetsByPage[index] ?? [] {
           let y = min(paper.height, paper.height - margin - target[1] + 6)
           if state.destinationNames.contains(id) {
             context.addDestination(id as CFString, at: CGPoint(x: 0, y: y))
           }
-          if state.outlineTargets.contains(id) { state.outlinePositions[id] = (index, y) }
+          if state.outlineTargets.contains(id) {
+            state.outlinePositions[id] = (index, y)
+          }
         }
         for link in linksByPage[index] ?? [] {
           let rect = CGRect(x: margin + link.x, y: paper.height - margin - link.y - link.h,
                             width: link.w, height: link.h)
           if link.href.hasPrefix("#") {
-            let id = String(link.href.dropFirst()).removingPercentEncoding ?? String(link.href.dropFirst())
-            guard state.destinationNames.contains(id) else { continue }
+            let fragment = String(link.href.dropFirst())
+            let id = fragment.removingPercentEncoding ?? fragment
+            guard state.destinationNames.contains(id) else {
+              continue
+            }
             context.setDestination(id as CFString, for: rect)
           } else if let url = URL(string: link.href), url.scheme != nil {
             context.setURL(url as CFURL, for: rect)
@@ -267,11 +291,11 @@ public final class PDFGenerator {
     
     let showsRunning = !running.isEmpty && running != title
     let halfWidth = columnWidth / 2 - 8
-    drawText(title, in: context, x: margin, baseline: headerBaseline, maxWidth: showsRunning ? halfWidth : columnWidth,
-             alignment: .left, color: gray)
+    drawText(title, in: context, x: margin, baseline: headerBaseline,
+             maxWidth: showsRunning ? halfWidth : columnWidth, alignment: .left, color: gray)
     if showsRunning {
-      drawText(running, in: context, x: paper.width - margin, baseline: headerBaseline, maxWidth: halfWidth,
-               alignment: .right, color: gray)
+      drawText(running, in: context, x: paper.width - margin, baseline: headerBaseline,
+               maxWidth: halfWidth, alignment: .right, color: gray)
     }
     context.setStrokeColor(CGColor(gray: 0.82, alpha: 1))
     context.setLineWidth(0.5)
@@ -279,8 +303,8 @@ public final class PDFGenerator {
     context.addLine(to: CGPoint(x: paper.width - margin, y: headerBaseline - 6))
     context.strokePath()
     
-    drawText("\(pageIndex + 1)", in: context, x: paper.width / 2, baseline: margin * 0.45, maxWidth: columnWidth,
-             alignment: .center, color: gray)
+    drawText("\(pageIndex + 1)", in: context, x: paper.width / 2, baseline: margin * 0.45,
+             maxWidth: columnWidth, alignment: .center, color: gray)
   }
   
   private enum Alignment {
@@ -289,17 +313,25 @@ public final class PDFGenerator {
     case right
   }
   
-  private func drawText(_ text: String, in context: CGContext, x: Double, baseline: Double, maxWidth: Double,
-                        alignment: Alignment, color: CGColor) {
+  private func drawText(_ text: String,
+                        in context: CGContext,
+                        x: Double,
+                        baseline: Double,
+                        maxWidth: Double,
+                        alignment: Alignment,
+                        color: CGColor) {
     let size = max(7, options.fontSize * 0.8)
-    let font = CTFontCreateUIFontForLanguage(.system, size, nil) ?? CTFontCreateWithName("Helvetica" as CFString, size, nil)
+    let font = CTFontCreateUIFontForLanguage(.system, size, nil)
+      ?? CTFontCreateWithName("Helvetica" as CFString, size, nil)
     let attributes: [NSAttributedString.Key: Any] = [
       NSAttributedString.Key(kCTFontAttributeName as String): font,
       NSAttributedString.Key(kCTForegroundColorAttributeName as String): color,
     ]
-    var line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
+    var line = CTLineCreateWithAttributedString(
+      NSAttributedString(string: text, attributes: attributes))
     if CTLineGetTypographicBounds(line, nil, nil, nil) > maxWidth {
-      let ellipsis = CTLineCreateWithAttributedString(NSAttributedString(string: "…", attributes: attributes))
+      let ellipsis = CTLineCreateWithAttributedString(
+        NSAttributedString(string: "…", attributes: attributes))
       line = CTLineCreateTruncatedLine(line, maxWidth, .end, ellipsis) ?? line
     }
     let width = CTLineGetTypographicBounds(line, nil, nil, nil)
@@ -320,11 +352,14 @@ public final class PDFGenerator {
     /// The outline (bookmarks) in the dictionary format of `CGPDFContextSetOutline`.
   private func makeOutline(model: DocumentModel, state: RenderState) -> [String: Any]? {
     func item(_ title: String, _ id: String, children: [[String: Any]]) -> [String: Any]? {
-      guard let position = state.outlinePositions[id] else { return nil }
+      guard let position = state.outlinePositions[id] else {
+        return nil
+      }
+      let rect = CGRect(x: 0, y: position.y, width: 0, height: 0)
       var item: [String: Any] = [
         kCGPDFOutlineTitle as String: title,
         kCGPDFOutlineDestination as String: position.page + 1,
-        kCGPDFOutlineDestinationRect as String: CGRect(x: 0, y: position.y, width: 0, height: 0).dictionaryRepresentation,
+        kCGPDFOutlineDestinationRect as String: rect.dictionaryRepresentation,
       ]
       if !children.isEmpty {
         item[kCGPDFOutlineChildren as String] = children
@@ -350,7 +385,9 @@ private final class NavigationDelegate: NSObject, WKNavigationDelegate {
   var continuation: CheckedContinuation<Void, Error>?
   
   private func finish(_ error: Error?) {
-    guard let continuation else { return }
+    guard let continuation else {
+      return
+    }
     self.continuation = nil
     if let error {
       continuation.resume(throwing: error)

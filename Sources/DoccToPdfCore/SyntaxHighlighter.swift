@@ -96,13 +96,17 @@ public struct SyntaxHighlighter: Sendable {
     func find(_ token: String, from position: Int) -> Int? {
       var i = position
       while i < chars.count {
-        if hasPrefix(token, at: i) { return i }
+        if hasPrefix(token, at: i) {
+          return i
+        }
         i += 1
       }
       return nil
     }
     func emit(_ range: Range<Int>, _ cssClass: String?) {
-      guard !range.isEmpty else { return }
+      guard !range.isEmpty else {
+        return
+      }
       let text = HTMLRenderer.escape(String(chars[range]))
       if let cssClass {
         output += "<span class=\"tok-\(cssClass)\">\(text)</span>"
@@ -180,7 +184,9 @@ public struct SyntaxHighlighter: Sendable {
         var end = index + 1
         while end < chars.count, chars[end].isHexDigit || "xXoObB_.".contains(chars[end]) {
             // Stop at a range operator such as 0..<10.
-          if chars[end] == ".", end + 1 < chars.count, !chars[end + 1].isNumber { break }
+          if chars[end] == ".", end + 1 < chars.count, !chars[end + 1].isNumber {
+            break
+          }
           end += 1
         }
         emit(index..<end, "number")
@@ -226,37 +232,40 @@ public struct SyntaxHighlighter: Sendable {
   }
   
   private static let swiftKeywords: Set<String> = [
-    "actor", "any", "as", "associatedtype", "async", "await", "borrowing", "break", "case", "catch", "class",
-    "consuming", "continue", "convenience", "default", "defer", "deinit", "didSet", "do", "dynamic", "else",
-    "enum", "extension", "fallthrough", "false", "fileprivate", "final", "for", "func", "get", "guard", "if",
-    "import", "in", "indirect", "infix", "init", "inout", "internal", "is", "isolated", "lazy", "let", "macro",
-    "mutating", "nil", "nonisolated", "nonmutating", "open", "operator", "optional", "override", "package",
-    "postfix", "precedencegroup", "prefix", "private", "protocol", "public", "repeat", "required", "rethrows",
-    "return", "self", "Self", "set", "some", "static", "struct", "subscript", "super", "switch", "throw",
-    "throws", "true", "try", "typealias", "unowned", "var", "weak", "where", "while", "willSet", "sending",
+    "actor", "any", "as", "associatedtype", "async", "await", "borrowing", "break", "case", "catch",
+    "class", "consuming", "continue", "convenience", "default", "defer", "deinit", "didSet", "do",
+    "dynamic", "else", "enum", "extension", "fallthrough", "false", "fileprivate", "final", "for",
+    "func", "get", "guard", "if", "import", "in", "indirect", "infix", "init", "inout", "internal",
+    "is", "isolated", "lazy", "let", "macro", "mutating", "nil", "nonisolated", "nonmutating",
+    "open", "operator", "optional", "override", "package", "postfix", "precedencegroup", "prefix",
+    "private", "protocol", "public", "repeat", "required", "rethrows", "return", "self", "Self",
+    "set", "some", "static", "struct", "subscript", "super", "switch", "throw", "throws", "true",
+    "try", "typealias", "unowned", "var", "weak", "where", "while", "willSet", "sending",
   ]
   
   private static let cKeywords: Set<String> = [
-    "auto", "break", "case", "char", "const", "continue", "default", "do", "double", "else", "enum", "extern",
-    "float", "for", "goto", "if", "inline", "int", "long", "register", "restrict", "return", "short", "signed",
-    "sizeof", "static", "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while", "BOOL",
-    "YES", "NO", "nil", "NULL", "self", "super", "id", "instancetype", "nonnull", "nullable", "class",
-    "namespace", "template", "typename", "public", "private", "protected", "virtual", "true", "false", "new",
-    "delete", "this", "using", "nullptr", "bool", "constexpr", "noexcept", "override", "final",
+    "auto", "break", "case", "char", "const", "continue", "default", "do", "double", "else", "enum",
+    "extern", "float", "for", "goto", "if", "inline", "int", "long", "register", "restrict",
+    "return", "short", "signed", "sizeof", "static", "struct", "switch", "typedef", "union",
+    "unsigned", "void", "volatile", "while", "BOOL", "YES", "NO", "nil", "NULL", "self", "super",
+    "id", "instancetype", "nonnull", "nullable", "class", "namespace", "template", "typename",
+    "public", "private", "protected", "virtual", "true", "false", "new", "delete", "this", "using",
+    "nullptr", "bool", "constexpr", "noexcept", "override", "final",
   ]
   
   private static let scriptKeywords: Set<String> = [
-    "async", "await", "break", "case", "catch", "class", "const", "continue", "default", "delete", "do",
-    "else", "enum", "export", "extends", "false", "finally", "for", "fn", "from", "func", "function", "if",
-    "implements", "import", "in", "instanceof", "interface", "let", "mut", "new", "null", "package",
-    "private", "protected", "public", "return", "static", "struct", "super", "switch", "this", "throw",
-    "true", "try", "type", "typeof", "undefined", "val", "var", "void", "while", "yield",
+    "async", "await", "break", "case", "catch", "class", "const", "continue", "default", "delete",
+    "do", "else", "enum", "export", "extends", "false", "finally", "for", "fn", "from", "func",
+    "function", "if", "implements", "import", "in", "instanceof", "interface", "let", "mut", "new",
+    "null", "package", "private", "protected", "public", "return", "static", "struct", "super",
+    "switch", "this", "throw", "true", "try", "type", "typeof", "undefined", "val", "var", "void",
+    "while", "yield",
   ]
   
   private static let shellKeywords: Set<String> = [
-    "if", "then", "else", "elif", "fi", "for", "while", "do", "done", "case", "esac", "in", "function",
-    "return", "export", "local", "def", "class", "import", "from", "as", "with", "try", "except", "finally",
-    "raise", "lambda", "None", "True", "False", "and", "or", "not", "is", "pass", "yield", "end", "true",
-    "false", "null",
+    "if", "then", "else", "elif", "fi", "for", "while", "do", "done", "case", "esac", "in",
+    "function", "return", "export", "local", "def", "class", "import", "from", "as", "with", "try",
+    "except", "finally", "raise", "lambda", "None", "True", "False", "and", "or", "not", "is",
+    "pass", "yield", "end", "true", "false", "null",
   ]
 }

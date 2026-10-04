@@ -26,10 +26,13 @@ struct TestArchive {
   
   init() throws {
     url = FileManager.default.temporaryDirectory
-      .appendingPathComponent("docc2pdf-tests-\(UUID().uuidString)/TestKit.doccarchive", isDirectory: true)
+      .appendingPathComponent("docc2pdf-tests-\(UUID().uuidString)", isDirectory: true)
+      .appendingPathComponent("TestKit.doccarchive", isDirectory: true)
     try write("metadata.json", ["bundleDisplayName": "TestKit", "bundleID": "com.example.TestKit"])
     try write("index/index.json", [
-      "interfaceLanguages": ["swift": [["path": "/documentation/testkit", "title": "TestKit", "type": "module"]]],
+      "interfaceLanguages": ["swift": [
+        ["path": "/documentation/testkit", "title": "TestKit", "type": "module"],
+      ]],
     ])
     try page("/documentation/testkit", kind: "symbol", role: "collection", title: "TestKit",
              abstract: "A kit for <testing>.",
@@ -37,9 +40,13 @@ struct TestArchive {
               ["type": "heading", "level": 2, "text": "Overview", "anchor": "overview"],
               ["type": "paragraph", "inlineContent": [
                 ["type": "text", "text": "Use "],
-                ["type": "reference", "identifier": "doc://TestKit/documentation/TestKit/Widget", "isActive": true],
+                ["type": "reference",
+                 "identifier": "doc://TestKit/documentation/TestKit/Widget",
+                 "isActive": true],
                 ["type": "text", "text": " or read "],
-                ["type": "reference", "identifier": "doc://TestKit/documentation/TestKit/Guide", "isActive": true],
+                ["type": "reference",
+                 "identifier": "doc://TestKit/documentation/TestKit/Guide",
+                 "isActive": true],
                 ["type": "text", "text": ". See "],
                 ["type": "reference", "identifier": "https://swift.org", "isActive": true],
                 ["type": "text", "text": "."],
@@ -47,7 +54,9 @@ struct TestArchive {
               ["type": "aside", "style": "warning", "content": [
                 ["type": "paragraph", "inlineContent": [["type": "text", "text": "Careful."]]],
               ]],
-              ["type": "codeListing", "syntax": "swift", "code": ["let x = 1 // one", "print(\"hi\")"]],
+              ["type": "codeListing",
+               "syntax": "swift",
+               "code": ["let x = 1 // one", "print(\"hi\")"]],
              ],
              topics: [
               ["title": "Essentials", "anchor": "Essentials", "identifiers": [
@@ -55,14 +64,16 @@ struct TestArchive {
                 "doc://TestKit/documentation/TestKit/Widget",
               ]],
              ])
-    try page("/documentation/testkit/guide", kind: "article", role: "article", title: "Getting Started",
-             abstract: "Learn the basics.", content: longContent(paragraphs: 80))
+    try page("/documentation/testkit/guide", kind: "article", role: "article",
+             title: "Getting Started", abstract: "Learn the basics.",
+             content: longContent(paragraphs: 80))
     try page("/documentation/testkit/widget", kind: "symbol", role: "symbol", title: "Widget",
              abstract: "A widget.", content: [],
              declaration: [["kind": "keyword", "text": "struct"], ["kind": "text", "text": " "],
                            ["kind": "identifier", "text": "Widget"]],
              topics: [
-              ["title": "Instance Properties", "identifiers": ["doc://TestKit/documentation/TestKit/Widget/size"]],
+              ["title": "Instance Properties",
+               "identifiers": ["doc://TestKit/documentation/TestKit/Widget/size"]],
              ])
     try page("/documentation/testkit/widget/size", kind: "symbol", role: "symbol", title: "size",
              abstract: "The size.", content: [],
@@ -80,19 +91,21 @@ struct TestArchive {
   }
   
   private func longContent(paragraphs: Int) -> [[String: Any]] {
-    (1...paragraphs).map { index in
-      ["type": "paragraph", "inlineContent": [["type": "text", "text":
-                                                "Paragraph \(index) with enough words to wrap onto several lines of text in the rendered page, "
-                                               + "so the document needs more than one page."]]]
+    (1...paragraphs).map { index -> [String: Any] in
+      let text = "Paragraph \(index) with enough words to wrap onto several lines of text in "
+        + "the rendered page, so the document needs more than one page."
+      return ["type": "paragraph", "inlineContent": [["type": "text", "text": text]]]
     }
   }
   
   private static var references: [String: Any] { [
     "doc://TestKit/documentation/TestKit": [
-      "type": "topic", "title": "TestKit", "url": "/documentation/testkit", "kind": "symbol", "role": "collection",
+      "type": "topic", "title": "TestKit", "url": "/documentation/testkit",
+      "kind": "symbol", "role": "collection",
     ],
     "doc://TestKit/documentation/TestKit/Guide": [
-      "type": "topic", "title": "Getting Started", "url": "/documentation/testkit/guide", "kind": "article",
+      "type": "topic", "title": "Getting Started", "url": "/documentation/testkit/guide",
+      "kind": "article",
       "abstract": [["type": "text", "text": "Learn the basics."]],
     ],
     "doc://TestKit/documentation/TestKit/Widget": [
@@ -102,7 +115,8 @@ struct TestArchive {
       "abstract": [["type": "text", "text": "A widget."]],
     ],
     "doc://TestKit/documentation/TestKit/Widget/size": [
-      "type": "topic", "title": "size", "url": "/documentation/testkit/widget/size", "kind": "symbol",
+      "type": "topic", "title": "size", "url": "/documentation/testkit/widget/size",
+      "kind": "symbol",
     ],
     "https://swift.org": [
       "type": "link", "title": "Swift.org", "url": "https://swift.org",
@@ -115,9 +129,12 @@ struct TestArchive {
                     topics: [[String: Any]] = []) throws {
     var sections: [[String: Any]] = []
     if let declaration {
-      sections.append(["kind": "declarations", "declarations": [["tokens": declaration, "languages": ["swift"]]]])
+      let declarations: [[String: Any]] = [["tokens": declaration, "languages": ["swift"]]]
+      sections.append(["kind": "declarations", "declarations": declarations])
     }
-    if !content.isEmpty { sections.append(["kind": "content", "content": content]) }
+    if !content.isEmpty {
+      sections.append(["kind": "content", "content": content])
+    }
     let json: [String: Any] = [
       "kind": kind,
       "identifier": ["url": "doc://TestKit" + path, "interfaceLanguage": "swift"],
@@ -133,7 +150,8 @@ struct TestArchive {
   
   private func write(_ relativePath: String, _ object: Any) throws {
     let file = url.appendingPathComponent(relativePath)
-    try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: file.deletingLastPathComponent(),
+                                            withIntermediateDirectories: true)
     try JSONSerialization.data(withJSONObject: object).write(to: file)
   }
 }

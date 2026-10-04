@@ -38,13 +38,15 @@ import Testing
     let fixture = try TestArchive()
     defer { fixture.remove() }
     let model = try DocumentModel(archive: DocumentationArchive(url: fixture.url))
-    #expect(model.orderedNodes.map(\.title) == ["TestKit", "Getting Started", "Widget", "size", "Orphan"])
+    #expect(model.orderedNodes.map(\.title)
+      == ["TestKit", "Getting Started", "Widget", "size", "Orphan"])
     #expect(model.orderedNodes.map(\.depth) == [0, 1, 1, 2, 0])
     #expect(model.roots.map(\.title) == ["TestKit", "Orphan"])
     let root = model.roots[0]
     #expect(root.groups.map(\.title) == ["Essentials"])
     #expect(root.groups[0].anchorID == "t1-Essentials")
-    #expect(model.node(forPath: "/documentation/testkit/widget/size")?.ancestors.map(\.title) == ["TestKit", "Widget"])
+    let size = model.node(forPath: "/documentation/testkit/widget/size")
+    #expect(size?.ancestors.map(\.title) == ["TestKit", "Widget"])
   }
   
   @Test func restrictsToRequestedRoots() throws {
@@ -65,7 +67,8 @@ import Testing
   }
   
   @Test func normalizesPaths() {
-    #expect(DocumentationArchive.normalize("doc://Bundle/documentation/Kit/Foo#bar") == "/documentation/kit/foo")
+    #expect(DocumentationArchive.normalize("doc://Bundle/documentation/Kit/Foo#bar")
+      == "/documentation/kit/foo")
     #expect(DocumentationArchive.normalize("documentation/kit/") == "/documentation/kit")
   }
 }
@@ -92,7 +95,8 @@ import Testing
   @Test func escapesTextAndRendersBlocks() throws {
     let html = try render()
     #expect(html.contains("A kit for &lt;testing&gt;."))
-    #expect(html.contains("<div class=\"aside aside-warning\"><p class=\"aside-label\">Warning</p>"))
+    #expect(html.contains(
+      "<div class=\"aside aside-warning\"><p class=\"aside-label\">Warning</p>"))
     #expect(html.contains("<h2 id=\"t1-overview\" data-keep-with-next>Overview</h2>"))
     #expect(html.contains("<span class=\"tok-comment\">// one</span>"))
   }
@@ -170,13 +174,15 @@ import Testing
     let output = fixture.url.deletingLastPathComponent().appendingPathComponent("TestKit.pdf")
     var options = RenderOptions()
     options.paper = .letter
-    let summary = try await PDFGenerator(options: options).generate(archiveURL: fixture.url, outputURL: output)
+    let summary = try await PDFGenerator(options: options)
+      .generate(archiveURL: fixture.url, outputURL: output)
     
     let document = try #require(PDFDocument(url: output))
     #expect(document.pageCount == summary.pageCount)
     #expect(summary.pageCount >= 5)
     #expect(summary.topicCount == 5)
-    #expect(document.documentAttributes?[PDFDocumentAttribute.titleAttribute] as? String == "TestKit")
+    let title = document.documentAttributes?[PDFDocumentAttribute.titleAttribute] as? String
+    #expect(title == "TestKit")
     let page = try #require(document.page(at: 0))
     #expect(page.bounds(for: .mediaBox).size == CGSize(width: 612, height: 792))
     
@@ -186,7 +192,8 @@ import Testing
     #expect(labels == ["Contents", "TestKit", "Orphan"])
     let essentials = try #require(outline.child(at: 1)?.child(at: 0))
     #expect(essentials.label == "Essentials")
-    #expect((0..<essentials.numberOfChildren).compactMap { essentials.child(at: $0)?.label } == ["Getting Started", "Widget"])
+    let children = (0..<essentials.numberOfChildren).compactMap { essentials.child(at: $0)?.label }
+    #expect(children == ["Getting Started", "Widget"])
     
     // Each outline destination lands on a page showing that title.
     for index in 0..<outline.numberOfChildren {
@@ -198,8 +205,10 @@ import Testing
     // Internal links resolve to pages; the external link keeps its URL.
     var internalLinks = 0, externalLinks: [URL] = []
     for index in 0..<document.pageCount {
-      for annotation in document.page(at: index)?.annotations ?? [] where annotation.type == "Link" {
-        if let destination = annotation.destination ?? (annotation.action as? PDFActionGoTo)?.destination {
+      let annotations = document.page(at: index)?.annotations ?? []
+      for annotation in annotations where annotation.type == "Link" {
+        let goTo = annotation.action as? PDFActionGoTo
+        if let destination = annotation.destination ?? goTo?.destination {
           #expect(destination.page != nil)
           internalLinks += 1
         } else if let url = annotation.url ?? (annotation.action as? PDFActionURL)?.url {

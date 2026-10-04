@@ -115,7 +115,9 @@ public final class DocumentModel {
   
   private func visit(path: String, parent: TopicNode?, depth: Int) throws -> TopicNode? {
     let key = DocumentationArchive.normalize(path)
-    guard nodesByPath[key] == nil, archive.contains(path: key) else { return nil }
+    guard nodesByPath[key] == nil, archive.contains(path: key) else {
+      return nil
+    }
     let page = try archive.page(at: key)
     let node = TopicNode(path: key,
                          page: page,
@@ -123,10 +125,13 @@ public final class DocumentModel {
     nodesByPath[key] = node
     orderedNodes.append(node)
     for (title, anchor, identifiers) in Self.childGroups(of: page) {
-      var group = TopicGroup(title: title, anchorID: HTMLRenderer.elementID(node.anchorID, anchor), topics: [])
+      let anchorID = HTMLRenderer.elementID(node.anchorID, anchor)
+      var group = TopicGroup(title: title, anchorID: anchorID, topics: [])
       for identifier in identifiers {
         guard let url = page["references"]?[identifier]?["url"]?.stringValue,
-              url.hasPrefix("/") else { continue }
+              url.hasPrefix("/") else {
+          continue
+        }
         if let child = try visit(path: url, parent: node, depth: depth + 1) {
           group.topics.append(child)
         }
@@ -144,7 +149,8 @@ public final class DocumentModel {
     var groups: [(String, String, [String])] = []
     for section in page["topicSections"].items {
       let title = section["title"]?.stringValue ?? "Topics"
-      groups.append((title, section["anchor"]?.stringValue ?? title, section["identifiers"].items.compactMap(\.stringValue)))
+      let anchor = section["anchor"]?.stringValue ?? title
+      groups.append((title, anchor, section["identifiers"].items.compactMap(\.stringValue)))
     }
     for section in page["sections"].items where section["kind"]?.stringValue == "volume" {
       for chapter in section["chapters"].items {

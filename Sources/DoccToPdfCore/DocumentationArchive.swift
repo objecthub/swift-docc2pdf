@@ -59,7 +59,9 @@ public final class DocumentationArchive {
     let dataDirectory = self.url.appendingPathComponent("data", isDirectory: true)
     var files: [String: URL] = [:]
     var paths: [String] = []
-    if let enumerator = FileManager.default.enumerator(at: dataDirectory, includingPropertiesForKeys: nil) {
+    let enumerator = FileManager.default.enumerator(at: dataDirectory,
+                                                    includingPropertiesForKeys: nil)
+    if let enumerator {
       let prefixLength = dataDirectory.resolvingSymlinksInPath().path.count
       for case let file as URL in enumerator where file.pathExtension == "json" {
         var path = String(file.resolvingSymlinksInPath().path.dropFirst(prefixLength))
@@ -71,7 +73,9 @@ public final class DocumentationArchive {
         }
       }
     }
-    guard !files.isEmpty else { throw DoccToPdfError.notAnArchive(url) }
+    guard !files.isEmpty else {
+      throw DoccToPdfError.notAnArchive(url)
+    }
     self.files = files
     self.allPaths = paths.sorted()
     
@@ -89,8 +93,12 @@ public final class DocumentationArchive {
   /// Loads the render node for a documentation path such as `/documentation/mykit/foo`.
   public func page(at path: String) throws -> JSON {
     let key = Self.normalize(path)
-    if let cached = cache[key] { return cached }
-    guard let file = files[key] else { throw DoccToPdfError.pageNotFound(path) }
+    if let cached = cache[key] {
+      return cached
+    }
+    guard let file = files[key] else {
+      throw DoccToPdfError.pageNotFound(path)
+    }
     let json = try JSON(data: Data(contentsOf: file))
     cache[key] = json
     return json
@@ -103,15 +111,22 @@ public final class DocumentationArchive {
     if let data = try? Data(contentsOf: indexURL), let index = try? JSON(data: data),
        let languages = index["interfaceLanguages"]?.objectValue {
       let nodes = languages["swift"] ?? languages.sorted { $0.key < $1.key }.first?.value
-      let roots = nodes.items.compactMap { $0["path"]?.stringValue }.filter(contains(path:)).map(Self.normalize)
+      let roots = nodes.items
+        .compactMap { $0["path"]?.stringValue }
+        .filter(contains(path:))
+        .map(Self.normalize)
       // Reference documentation first, then tutorials.
-      let ordered = roots.filter { !$0.hasPrefix("/tutorials") } + roots.filter { $0.hasPrefix("/tutorials") }
-      if !ordered.isEmpty { return ordered }
+      let ordered = roots.filter { !$0.hasPrefix("/tutorials") }
+        + roots.filter { $0.hasPrefix("/tutorials") }
+      if !ordered.isEmpty {
+        return ordered
+      }
     }
     // Fall back to the JSON files directly below data/documentation and data/tutorials.
     return allPaths.filter { path in
       let components = path.split(separator: "/")
-      return components.count == 2 && (components[0] == "documentation" || components[0] == "tutorials")
+      return components.count == 2
+        && (components[0] == "documentation" || components[0] == "tutorials")
     }
   }
   
@@ -128,14 +143,20 @@ public final class DocumentationArchive {
   /// Normalizes a documentation URL or path to the lower-cased path used as lookup key.
   public static func normalize(_ path: String) -> String {
     var path = path
-    if let hash = path.firstIndex(of: "#") { path = String(path[..<hash]) }
-    if let query = path.firstIndex(of: "?") { path = String(path[..<query]) }
+    if let hash = path.firstIndex(of: "#") {
+      path = String(path[..<hash])
+    }
+    if let query = path.firstIndex(of: "?") {
+      path = String(path[..<query])
+    }
     if let range = path.range(of: "://") {
       // doc://bundle/documentation/... → /documentation/...
       let afterScheme = path[range.upperBound...]
       path = afterScheme.firstIndex(of: "/").map { String(afterScheme[$0...]) } ?? "/"
     }
-    if !path.hasPrefix("/") { path = "/" + path }
+    if !path.hasPrefix("/") {
+      path = "/" + path
+    }
     while path.count > 1 && path.hasSuffix("/") { path.removeLast() }
     return path.lowercased()
   }

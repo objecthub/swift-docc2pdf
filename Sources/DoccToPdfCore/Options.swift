@@ -58,7 +58,9 @@ public struct PaperSize: Sendable, Equatable {
       case "a5": self = .a5
       default:
         let parts = name.lowercased().split(separator: "x").compactMap { Double($0) }
-        guard parts.count == 2, parts[0] >= 144, parts[1] >= 144 else { return nil }
+        guard parts.count == 2, parts[0] >= 144, parts[1] >= 144 else {
+          return nil
+        }
         self.init(width: parts[0], height: parts[1])
     }
   }

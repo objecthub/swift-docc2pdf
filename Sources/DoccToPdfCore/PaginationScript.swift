@@ -36,24 +36,38 @@
 /// reports link rectangles, anchors, and running titles in page coordinates.
 /// `resetBatch` removes the spacers again, restoring the original layout.
 enum PaginationScript {
-    /// Resolves once web fonts and images have finished loading.
+  /// Resolves once web fonts and images have finished loading.
   static let waitForResources = """
     await document.fonts.ready;
     await Promise.all(Array.from(document.images).map(img => img.complete ? null :
         new Promise(resolve => { img.onload = resolve; img.onerror = resolve; })));
     return true;
     """
-
+  
   static let install = #"""
     window.__pager = (() => {
       let pageHeight = 0, boxes = [], pages = [], breaks = [], spacers = [];
       const docHeight = () => Math.ceil(document.documentElement.scrollHeight);
       const topOf = el => el.getBoundingClientRect().top + window.scrollY;
-      const rectOf = el => { const r = el.getBoundingClientRect(); return [r.top + window.scrollY, r.bottom + window.scrollY]; };
-      const depthOf = node => { let d = 0; for (let n = node; n; n = n.parentNode) d++; return d; };
+      const rectOf = el => {
+        const r = el.getBoundingClientRect();
+        return [r.top + window.scrollY, r.bottom + window.scrollY];
+      };
+      const depthOf = node => {
+        let d = 0;
+        for (let n = node; n; n = n.parentNode) d++;
+        return d;
+      };
       const lowerBound = (list, y) => {
         let lo = 0, hi = list.length;
-        while (lo < hi) { const mid = (lo + hi) >> 1; if (list[mid].top < y) lo = mid + 1; else hi = mid; }
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (list[mid].top < y) {
+            lo = mid + 1;
+          } else {
+            hi = mid;
+          }
+        }
         return lo;
       };
       const byTopThenOutermost = (a, b) => (a.top - b.top) || (a.depth - b.depth);
@@ -61,27 +75,41 @@ enum PaginationScript {
       function collectBoxes() {
         const scrollY = window.scrollY;
         let list = [];
-        const add = (top, bottom, ref, depth) => { if (bottom - top > 0.5) list.push({ top, bottom, ref, depth, soft: false }); };
+        const add = (top, bottom, ref, depth) => {
+          if (bottom - top > 0.5) {
+            list.push({ top, bottom, ref, depth, soft: false });
+          }
+        };
         // Lines of text.
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         const range = document.createRange();
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-          if (!/\S/.test(node.data)) continue;
+          if (!/\S/.test(node.data)) {
+            continue;
+          }
           range.selectNodeContents(node);
           for (const r of range.getClientRects()) {
-            if (r.width > 0 && r.height > 0) add(r.top + scrollY, r.bottom + scrollY, node, 1e9);
+            if (r.width > 0 && r.height > 0) {
+              add(r.top + scrollY, r.bottom + scrollY, node, 1e9);
+            }
           }
         }
         // Images outside running text, and table rows.
         for (const el of document.querySelectorAll('img, svg, video')) {
-          if (el.closest('p, li, td, th, dt, dd, h1, h2, h3, h4, h5, h6, a')) continue;
+          if (el.closest('p, li, td, th, dt, dd, h1, h2, h3, h4, h5, h6, a')) {
+            continue;
+          }
           const [top, bottom] = rectOf(el);
           const ref = el.closest('figure') || el;
-          if (bottom - top < pageHeight * 0.95) add(top, bottom, ref, depthOf(ref));
+          if (bottom - top < pageHeight * 0.95) {
+            add(top, bottom, ref, depthOf(ref));
+          }
         }
         for (const el of document.querySelectorAll('tr')) {
           const [top, bottom] = rectOf(el);
-          if (bottom - top < pageHeight * 0.9) add(top, bottom, el, depthOf(el));
+          if (bottom - top < pageHeight * 0.9) {
+            add(top, bottom, el, depthOf(el));
+          }
         }
         list.sort(byTopThenOutermost);
 
@@ -89,37 +117,49 @@ enum PaginationScript {
         // Every block starts with its first line: a break before that line moves above
         // the block's top edge (including borders and padding) and inserts the spacer
         // before the block.
-        const blocks = 'p, li, dt, dd, dl, ul, ol, h1, h2, h3, h4, h5, h6, pre, table, figure, hr, header, nav, ' +
-                       'article, section, div, blockquote, .line';
+        const blocks = 'p, li, dt, dd, dl, ul, ol, h1, h2, h3, h4, h5, h6, pre, table, figure, ' +
+                       'hr, header, nav, article, section, div, blockquote, .line';
         for (const el of document.querySelectorAll(blocks)) {
           const [top, bottom] = rectOf(el);
-          if (bottom - top <= 0) continue;
+          if (bottom - top <= 0) {
+            continue;
+          }
           const first = lowerBound(list, top - 0.5);
           if (first < list.length && list[first].top < bottom) {
             const end = Math.min(bottom, list[first].bottom);
-            if (end - top < pageHeight * 0.9) extra.push({ top, bottom: end, ref: el, depth: depthOf(el), soft: true });
+            if (end - top < pageHeight * 0.9) {
+              extra.push({ top, bottom: end, ref: el, depth: depthOf(el), soft: true });
+            }
           }
         }
         // Small boxed blocks are not split at all.
-        for (const el of document.querySelectorAll('pre, .declaration, .aside, .step, .assessment, figure')) {
+        const smallBoxes = 'pre, .declaration, .aside, .step, .assessment, figure';
+        for (const el of document.querySelectorAll(smallBoxes)) {
           const [top, bottom] = rectOf(el);
           if (bottom - top > 0 && bottom - top < pageHeight * 0.3) {
             extra.push({ top, bottom, ref: el, depth: depthOf(el), soft: true });
           }
         }
         // Boxed blocks keep their bottom edge with their last line.
-        for (const el of document.querySelectorAll('pre, .declaration, .aside, table, .step, .assessment, figure')) {
+        const boxed = 'pre, .declaration, .aside, table, .step, .assessment, figure';
+        for (const el of document.querySelectorAll(boxed)) {
           const [top, bottom] = rectOf(el);
           const last = lowerBound(list, bottom - 0.5) - 1;
-          if (last >= 0 && list[last].top >= top) extra.push({ top: list[last].top, bottom, ref: null, depth: 2e9, soft: true });
+          if (last >= 0 && list[last].top >= top) {
+            extra.push({ top: list[last].top, bottom, ref: null, depth: 2e9, soft: true });
+          }
         }
         // Headings stay with whatever follows them.
         for (const el of document.querySelectorAll('[data-keep-with-next]')) {
           const [top, bottom] = rectOf(el);
-          if (bottom - top <= 0) continue;
+          if (bottom - top <= 0) {
+            continue;
+          }
           const next = lowerBound(list, bottom - 0.5);
           const end = next < list.length ? Math.max(bottom, list[next].bottom) : bottom;
-          if (end - top < pageHeight * 0.6) extra.push({ top, bottom: end, ref: el, depth: depthOf(el), soft: true });
+          if (end - top < pageHeight * 0.6) {
+            extra.push({ top, bottom: end, ref: el, depth: depthOf(el), soft: true });
+          }
         }
         return list.concat(extra).sort(byTopThenOutermost);
       }
@@ -127,8 +167,11 @@ enum PaginationScript {
       function computePages() {
         const height = docHeight();
         const forced = Array.from(document.querySelectorAll('.page-break'))
-          .map(el => ({ y: topOf(el), el })).filter(f => f.y > 0.5).sort((a, b) => a.y - b.y);
-        pages = []; breaks = [null];
+          .map(el => ({ y: topOf(el), el }))
+          .filter(f => f.y > 0.5)
+          .sort((a, b) => a.y - b.y);
+        pages = [];
+        breaks = [null];
         let start = 0, nextForced = 0;
         while (start < height - 0.5) {
           while (nextForced < forced.length && forced[nextForced].y <= start + 0.5) nextForced++;
@@ -151,21 +194,29 @@ enum PaginationScript {
                 let best = y;
                 for (let i = lo; i < hi; i++) {
                   const box = boxes[i];
-                  if (box.bottom > y + 0.25 && box.top < best && (includeSoft || !box.soft)) best = box.top;
+                  if (box.bottom > y + 0.25 && box.top < best && (includeSoft || !box.soft)) {
+                    best = box.top;
+                  }
                 }
-                if (best >= y) return y;
+                if (best >= y) {
+                  return y;
+                }
                 y = best;
               }
             };
             end = findBreak(true);
-            if (end < limit - pageHeight * 0.3) end = Math.max(end, findBreak(false));
+            if (end < limit - pageHeight * 0.3) {
+              end = Math.max(end, findBreak(false));
+            }
             if (end <= start + 0.5) {
               end = limit;  // A single interval taller than a page: cut it.
               next = { y: end, ref: null };
             } else {
               // The next page starts at the next content, skipping blank space.
               let i = lowerBound(boxes, end - 0.25);
-              while (i + 1 < boxes.length && !boxes[i].ref && boxes[i + 1].top === boxes[i].top) i++;
+              while (i + 1 < boxes.length && !boxes[i].ref && boxes[i + 1].top === boxes[i].top) {
+                i++;
+              }
               if (i < boxes.length && !(pendingForced && pendingForced.y <= boxes[i].top)) {
                 const box = boxes[i];
                 next = { y: Math.max(box.top, end), ref: box.ref, mid: (box.top + box.bottom) / 2 };
@@ -175,7 +226,9 @@ enum PaginationScript {
             }
           }
           pages.push([start, end]);
-          if (!next || end >= height) break;
+          if (!next || end >= height) {
+            break;
+          }
           breaks.push(next);
           start = next.y;
         }
@@ -183,14 +236,23 @@ enum PaginationScript {
 
       function pageOf(y) {
         let lo = 0, hi = pages.length - 1;
-        while (lo < hi) { const mid = (lo + hi) >> 1; if (pages[mid][1] > y + 0.25) hi = mid; else lo = mid + 1; }
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (pages[mid][1] > y + 0.25) {
+            hi = mid;
+          } else {
+            lo = mid + 1;
+          }
+        }
         return lo;
       }
 
       function fillTableOfContents() {
         for (const el of document.querySelectorAll('.toc-num[data-target]')) {
           const target = document.getElementById(el.dataset.target);
-          if (target) el.textContent = String(pageOf(topOf(target)) + 1);
+          if (target) {
+            el.textContent = String(pageOf(topOf(target)) + 1);
+          }
         }
       }
 
@@ -202,7 +264,10 @@ enum PaginationScript {
           let id = decodeURIComponent(a.getAttribute('href').slice(1));
           if (!document.getElementById(id)) {
             id = id.split('-')[0];
-            if (!document.getElementById(id)) { a.removeAttribute('href'); continue; }
+            if (!document.getElementById(id)) {
+              a.removeAttribute('href');
+              continue;
+            }
             a.setAttribute('href', '#' + id);
           }
           targets.add(id);
@@ -220,7 +285,9 @@ enum PaginationScript {
           const before = Array.from(document.querySelectorAll('.page-break'), topOf);
           fillTableOfContents();
           const after = Array.from(document.querySelectorAll('.page-break'), topOf);
-          if (before.every((y, i) => Math.abs(y - after[i]) < 0.25)) break;
+          if (before.every((y, i) => Math.abs(y - after[i]) < 0.25)) {
+            break;
+          }
         }
         boxes = [];
         return JSON.stringify({ height: docHeight(), pageCount: pages.length, linkTargets });
@@ -230,7 +297,9 @@ enum PaginationScript {
 
       function blockAncestor(node) {
         for (let el = node.parentElement; el; el = el.parentElement) {
-          if (!getComputedStyle(el).display.startsWith('inline')) return el;
+          if (!getComputedStyle(el).display.startsWith('inline')) {
+            return el;
+          }
         }
         return document.body;
       }
@@ -240,14 +309,24 @@ enum PaginationScript {
         const range = document.createRange();
         const isBelow = offset => {
           for (let o = offset; o < node.length; o++) {
-            range.setStart(node, o); range.setEnd(node, o + 1);
+            range.setStart(node, o);
+            range.setEnd(node, o + 1);
             const r = range.getBoundingClientRect();
-            if (r.height > 0) return r.bottom + window.scrollY > mid;
+            if (r.height > 0) {
+              return r.bottom + window.scrollY > mid;
+            }
           }
           return true;
         };
         let lo = 0, hi = node.length;
-        while (lo < hi) { const m = (lo + hi) >> 1; if (isBelow(m)) hi = m; else lo = m + 1; }
+        while (lo < hi) {
+          const m = (lo + hi) >> 1;
+          if (isBelow(m)) {
+            hi = m;
+          } else {
+            lo = m + 1;
+          }
+        }
         return lo;
       }
 
@@ -259,21 +338,33 @@ enum PaginationScript {
           // The node was split by an earlier break; the line is in a following node.
           walker.currentNode = node;
           for (let next = walker.nextNode(); next; next = walker.nextNode()) {
-            if (!/\S/.test(next.data)) continue;
+            if (!/\S/.test(next.data)) {
+              continue;
+            }
             const o = firstOffsetBelow(next, mid);
-            if (o < next.length) return { node: next, offset: o };
+            if (o < next.length) {
+              return { node: next, offset: o };
+            }
           }
           return null;
         }
         let position = { node, offset };
-        if (offset > 0) return position;
+        if (offset > 0) {
+          return position;
+        }
         walker.currentNode = node;
         for (let prev = walker.previousNode(); prev; prev = walker.previousNode()) {
-          if (!/\S/.test(prev.data)) continue;
+          if (!/\S/.test(prev.data)) {
+            continue;
+          }
           const o = firstOffsetBelow(prev, mid);
-          if (o >= prev.length) break;
+          if (o >= prev.length) {
+            break;
+          }
           position = { node: prev, offset: o };
-          if (o > 0) break;
+          if (o > 0) {
+            break;
+          }
         }
         return position;
       }
@@ -281,32 +372,51 @@ enum PaginationScript {
       // Where to insert the spacer for a break: before a block-level element, or at the
       // start of a line inside running text. Returns null when no clean position exists.
       function insertionPoint(brk, delta, previousEnd) {
-        if (!brk || !brk.ref) return null;
+        if (!brk || !brk.ref) {
+          return null;
+        }
         if (brk.ref.nodeType === Node.TEXT_NODE) {
-          if (!brk.ref.isConnected) return null;
+          if (!brk.ref.isConnected) {
+            return null;
+          }
           const position = lineStart(brk.ref, brk.mid + delta);
-          if (!position) return null;
-          const node = position.offset > 0 ? position.node.splitText(position.offset) : position.node;
+          if (!position) {
+            return null;
+          }
+          const node = position.offset > 0
+            ? position.node.splitText(position.offset)
+            : position.node;
           const measure = () => {
             const range = document.createRange();
-            range.setStart(node, 0); range.setEnd(node, Math.min(1, node.length));
+            range.setStart(node, 0);
+            range.setEnd(node, Math.min(1, node.length));
             return range.getBoundingClientRect().top + window.scrollY;
           };
-          if (measure() < previousEnd - 0.5) return null;
+          if (measure() < previousEnd - 0.5) {
+            return null;
+          }
           return { parent: node.parentNode, before: node, measure, row: false };
         }
         let el = brk.ref;
         // Spacers must not become flex or grid items or table cells.
         for (;;) {
           const parent = el.parentElement;
-          if (!parent || parent === document.body) break;
+          if (!parent || parent === document.body) {
+            break;
+          }
           const display = getComputedStyle(parent).display;
           if (/flex|grid/.test(display) || el.tagName === 'TD' || el.tagName === 'TH' ||
-              ['TBODY', 'THEAD', 'TFOOT'].includes(el.tagName)) { el = parent; continue; }
+              ['TBODY', 'THEAD', 'TFOOT'].includes(el.tagName)) {
+            el = parent;
+            continue;
+          }
           break;
         }
-        if (el === document.body || topOf(el) < previousEnd - 0.5) return null;
-        return { parent: el.parentNode, before: el, measure: () => topOf(el), row: el.tagName === 'TR' };
+        if (el === document.body || topOf(el) < previousEnd - 0.5) {
+          return null;
+        }
+        const measure = () => topOf(el);
+        return { parent: el.parentNode, before: el, measure, row: el.tagName === 'TR' };
       }
 
       function makeSpacer(row) {
@@ -345,7 +455,9 @@ enum PaginationScript {
             for (let attempt = 0; attempt < 3 && height >= 1; attempt++) {
               spacer.__sizer.style.height = height + 'px';
               const error = wanted - (point.measure() - before);
-              if (Math.abs(error) < 0.2) break;
+              if (Math.abs(error) < 0.2) {
+                break;
+              }
               height += error;
             }
             delta += point.measure() - before;
@@ -358,30 +470,48 @@ enum PaginationScript {
         const upperEdge = placed[placed.length - 1][1];
         const placedPageOf = y => {
           let lo = 0, hi = placed.length - 1;
-          while (lo < hi) { const mid = (lo + hi) >> 1; if (placed[mid][1] > y + 0.25) hi = mid; else lo = mid + 1; }
+          while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (placed[mid][1] > y + 0.25) {
+              hi = mid;
+            } else {
+              lo = mid + 1;
+            }
+          }
           return lo;
         };
         const links = [];
         const addLinks = (el, href) => {
           for (const r of el.getClientRects()) {
             const y = r.top + scrollY;
-            if (r.width <= 0 || r.height <= 0 || y < lowerEdge || y >= upperEdge) continue;
+            if (r.width <= 0 || r.height <= 0 || y < lowerEdge || y >= upperEdge) {
+              continue;
+            }
             const p = placedPageOf(y);
-            if (y < placed[p][0] - 0.5) continue;
-            links.push({ page: first + p, x: r.left, y: y - placed[p][0], w: r.width, h: r.height, href });
+            if (y < placed[p][0] - 0.5) {
+              continue;
+            }
+            links.push({ page: first + p, x: r.left, y: y - placed[p][0],
+                         w: r.width, h: r.height, href });
           }
         };
         for (const entry of document.querySelectorAll('.toc-entry')) {
           const a = entry.querySelector('a[href]');
-          if (a) addLinks(entry, a.getAttribute('href'));
+          if (a) {
+            addLinks(entry, a.getAttribute('href'));
+          }
         }
         for (const a of document.querySelectorAll('a[href]')) {
-          if (!a.closest('.toc-entry')) addLinks(a, a.getAttribute('href'));
+          if (!a.closest('.toc-entry')) {
+            addLinks(a, a.getAttribute('href'));
+          }
         }
         const targets = {};
         for (const el of document.querySelectorAll('[id]')) {
           const y = topOf(el);
-          if (y < lowerEdge || y >= upperEdge) continue;
+          if (y < lowerEdge || y >= upperEdge) {
+            continue;
+          }
           const p = placedPageOf(y);
           targets[el.id] = [first + p, Math.max(0, y - placed[p][0])];
         }
@@ -396,7 +526,9 @@ enum PaginationScript {
       }
 
       function resetBatch() {
-        for (const spacer of spacers) spacer.remove();
+        for (const spacer of spacers) {
+          spacer.remove();
+        }
         spacers = [];
         return true;
       }

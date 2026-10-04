@@ -37,8 +37,12 @@ public final class HTMLRenderer {
   }
   
   public var documentTitle: String {
-    if let title = options.title { return title }
-    if !options.rootPaths.isEmpty, model.roots.count == 1 { return model.roots[0].title }
+    if let title = options.title {
+      return title
+    }
+    if !options.rootPaths.isEmpty, model.roots.count == 1 {
+      return model.roots[0].title
+    }
     return model.archive.displayName
   }
   
@@ -53,8 +57,12 @@ public final class HTMLRenderer {
         </head><body>
         
         """
-    if options.includeCover { html += renderCover() }
-    if let depth = options.tocDepth { html += renderTableOfContents(maxDepth: depth) }
+    if options.includeCover {
+      html += renderCover()
+    }
+    if let depth = options.tocDepth {
+      html += renderTableOfContents(maxDepth: depth)
+    }
     for (index, node) in model.orderedNodes.enumerated() {
       html += renderTopic(node, isFirst: index == 0)
     }
@@ -64,33 +72,43 @@ public final class HTMLRenderer {
   
   private func renderCover() -> String {
     let root = model.roots.first
-    let eyebrow = model.roots.count == 1 ? root.flatMap(roleHeading(of:)) ?? "Documentation" : "Documentation"
+    let eyebrow = model.roots.count == 1
+      ? root.flatMap(roleHeading(of:)) ?? "Documentation"
+      : "Documentation"
     var html = "<section class=\"cover\" id=\"cover\" data-running-title=\"\">"
     html += "<div class=\"cover-bar\"></div>"
     html += "<p class=\"cover-eyebrow\">\(Self.escape(eyebrow))</p>"
     html += "<h1 class=\"cover-title\">\(Self.escape(documentTitle))</h1>"
     if model.roots.count == 1, let root {
       let abstract = inline(root.page["abstract"].items, root)
-      if !abstract.isEmpty { html += "<p class=\"cover-abstract\">\(abstract)</p>" }
+      if !abstract.isEmpty {
+        html += "<p class=\"cover-abstract\">\(abstract)</p>"
+      }
     }
     let date = options.generationDate.formatted(date: .long, time: .omitted)
     html += "<p class=\"cover-meta\">Generated \(Self.escape(date))"
-    if let bundle = model.archive.bundleIdentifier { html += " from <span class=\"mono\">\(Self.escape(bundle))</span>" }
+    if let bundle = model.archive.bundleIdentifier {
+      html += " from <span class=\"mono\">\(Self.escape(bundle))</span>"
+    }
     html += "</p></section>\n"
     return html
   }
   
   private func renderTableOfContents(maxDepth: Int) -> String {
-    var html = "<section class=\"toc page-break\" id=\"toc\" data-running-title=\"Contents\"><h1>Contents</h1>"
+    var html = "<section class=\"toc page-break\" id=\"toc\" data-running-title=\"Contents\">"
+      + "<h1>Contents</h1>"
     func entry(title: String, target: String, level: Int, isGroup: Bool) {
       let classes = "toc-entry level-\(min(level, 4))" + (isGroup ? " group" : "")
       html += "<div class=\"\(classes)\" style=\"padding-left:\(Double(level) * 1.3)em\">"
       html += "<a class=\"toc-title\" href=\"#\(target)\">\(Self.escape(title))</a>"
-      html += "<span class=\"toc-dots\"></span><span class=\"toc-num\" data-target=\"\(target)\">\u{2007}</span></div>"
+      html += "<span class=\"toc-dots\"></span>"
+      html += "<span class=\"toc-num\" data-target=\"\(target)\">\u{2007}</span></div>"
     }
     func walk(_ node: TopicNode, level: Int) {
       entry(title: node.title, target: node.anchorID, level: level, isGroup: false)
-      guard node.depth < maxDepth else { return }
+      guard node.depth < maxDepth else {
+        return
+      }
       for group in node.groups where !group.topics.isEmpty {
         entry(title: group.title, target: group.anchorID, level: level + 1, isGroup: true)
         for child in group.topics { walk(child, level: level + 2) }
@@ -104,7 +122,9 @@ public final class HTMLRenderer {
   // MARK: - Topic pages
   
   private func startsNewPage(_ node: TopicNode, isFirst: Bool) -> Bool {
-    if isFirst { return options.includeCover || options.tocDepth != nil }
+    if isFirst {
+      return options.includeCover || options.tocDepth != nil
+    }
     switch options.pageBreaks {
       case .all: return true
       case .none: return false
@@ -117,27 +137,34 @@ public final class HTMLRenderer {
     let breaks = startsNewPage(node, isFirst: isFirst)
     let isLeaf = node.kind == "symbol" && !node.hasCuratedChildren
     var classes = ["topic", breaks ? "page-break" : (isFirst ? "" : "flow")]
-    if isLeaf { classes.append("leaf") }
-    var html = "<article class=\"\(classes.filter { !$0.isEmpty }.joined(separator: " "))\" id=\"\(node.anchorID)\" "
+    if isLeaf {
+      classes.append("leaf")
+    }
+    let classList = classes.filter { !$0.isEmpty }.joined(separator: " ")
+    var html = "<article class=\"\(classList)\" id=\"\(node.anchorID)\" "
     html += "data-running-title=\"\(Self.escape(node.title))\">"
     
     html += "<header class=\"topic-header\" data-keep-with-next>"
     let ancestors = node.ancestors
     if !ancestors.isEmpty {
       let crumbs = ancestors.map { "<a href=\"#\($0.anchorID)\">\(Self.escape($0.title))</a>" }
-      html += "<nav class=\"breadcrumbs\">\(crumbs.joined(separator: " <span class=\"sep\">›</span> "))</nav>"
+      let separator = " <span class=\"sep\">›</span> "
+      html += "<nav class=\"breadcrumbs\">\(crumbs.joined(separator: separator))</nav>"
     }
     if let eyebrow = roleHeading(of: node) {
       html += "<p class=\"eyebrow\">\(Self.escape(eyebrow))</p>"
     }
     html += "<h1 class=\"topic-title\">\(Self.breakableTitle(node.title))</h1>"
     let abstract = inline(page["abstract"].items, node)
-    if !abstract.isEmpty { html += "<p class=\"abstract\">\(abstract)</p>" }
+    if !abstract.isEmpty {
+      html += "<p class=\"abstract\">\(abstract)</p>"
+    }
     html += renderPlatforms(page["metadata"]?["platforms"].items ?? [])
     html += "</header>"
     
     if let summary = page["deprecationSummary"]?.arrayValue, !summary.isEmpty {
-      html += "<div class=\"aside aside-deprecated\"><p class=\"aside-label\">Deprecated</p>\(blocks(summary, node))</div>"
+      html += "<div class=\"aside aside-deprecated\"><p class=\"aside-label\">Deprecated</p>"
+        + "\(blocks(summary, node))</div>"
     }
     
     for section in page["primaryContentSections"].items {
@@ -154,7 +181,9 @@ public final class HTMLRenderer {
   }
   
   private func roleHeading(of node: TopicNode) -> String? {
-    if let heading = node.page["metadata"]?["roleHeading"]?.stringValue { return heading }
+    if let heading = node.page["metadata"]?["roleHeading"]?.stringValue {
+      return heading
+    }
     switch node.kind {
       case "article": return "Article"
       case "tutorial", "project": return "Tutorial"
@@ -164,10 +193,14 @@ public final class HTMLRenderer {
   }
   
   private func renderPlatforms(_ platforms: [JSON]) -> String {
-    guard !platforms.isEmpty else { return "" }
+    guard !platforms.isEmpty else {
+      return ""
+    }
     var html = "<div class=\"platforms\">"
     for platform in platforms {
-      guard let name = platform["name"]?.stringValue else { continue }
+      guard let name = platform["name"]?.stringValue else {
+        continue
+      }
       var text = Self.escape(name)
       if platform["unavailable"]?.boolValue == true {
         text += " <span class=\"badge\">Unavailable</span>"
@@ -179,8 +212,12 @@ public final class HTMLRenderer {
           text += "+"
         }
       }
-      if platform["deprecated"]?.boolValue == true { text += " <span class=\"badge deprecated\">Deprecated</span>" }
-      if platform["beta"]?.boolValue == true { text += " <span class=\"badge beta\">Beta</span>" }
+      if platform["deprecated"]?.boolValue == true {
+        text += " <span class=\"badge deprecated\">Deprecated</span>"
+      }
+      if platform["beta"]?.boolValue == true {
+        text += " <span class=\"badge beta\">Beta</span>"
+      }
       html += "<span class=\"platform\">\(text)</span>"
     }
     return html + "</div>"
@@ -204,16 +241,23 @@ public final class HTMLRenderer {
         return html + "</dl>"
       case "mentions":
         let identifiers = section["mentions"].items.compactMap(\.stringValue)
-        guard !identifiers.isEmpty else { return "" }
-        return "<h3 class=\"mentions-title\">Mentioned In</h3>" + topicList(identifiers, node, showAbstracts: false)
-      case "properties", "restParameters", "restBody", "restResponses", "restCookies", "restHeaders":
+        guard !identifiers.isEmpty else {
+          return ""
+        }
+        return "<h3 class=\"mentions-title\">Mentioned In</h3>"
+          + topicList(identifiers, node, showAbstracts: false)
+      case "properties", "restParameters", "restBody", "restResponses", "restCookies",
+           "restHeaders":
         return renderPropertyList(section, node)
       case "restEndpoint":
-        let tokens = section["tokens"].items.map { Self.escape($0["text"]?.stringValue ?? "") }.joined()
+        let tokens = section["tokens"].items
+          .map { Self.escape($0["text"]?.stringValue ?? "") }
+          .joined()
         return sectionHeading(section["title"]?.stringValue ?? "URL", node)
         + "<div class=\"declaration\"><code>\(tokens)</code></div>"
       case "attributes":
-        var html = sectionHeading(section["title"]?.stringValue ?? "Attributes", node) + "<dl class=\"term-list\">"
+        var html = sectionHeading(section["title"]?.stringValue ?? "Attributes", node)
+          + "<dl class=\"term-list\">"
         for attribute in section["attributes"].items {
           let title = attribute["title"]?.stringValue ?? attribute["kind"]?.stringValue ?? ""
           let value = attribute["value"]?.stringValue
@@ -222,7 +266,8 @@ public final class HTMLRenderer {
         }
         return html + "</dl>"
       case "possibleValues":
-        var html = sectionHeading(section["title"]?.stringValue ?? "Possible Values", node) + "<dl class=\"term-list\">"
+        var html = sectionHeading(section["title"]?.stringValue ?? "Possible Values", node)
+          + "<dl class=\"term-list\">"
         for value in section["values"].items {
           html += "<dt><code>\(Self.escape(value["name"]?.stringValue ?? ""))</code></dt>"
           html += "<dd>\(blocks(value["content"].items, node))</dd>"
@@ -237,7 +282,8 @@ public final class HTMLRenderer {
     var html = "<div class=\"declaration\">"
     let languages = declaration["languages"].items.compactMap(\.stringValue)
     if languages.contains(where: { $0 != "swift" }) {
-      html += "<p class=\"declaration-label\">\(Self.escape(languages.map(Self.languageName).joined(separator: ", ")))</p>"
+      let names = languages.map(Self.languageName).joined(separator: ", ")
+      html += "<p class=\"declaration-label\">\(Self.escape(names))</p>"
     }
     html += "<code>\(tokens(declaration["tokens"].items, node, linkTypes: true))</code></div>"
     return html
@@ -246,15 +292,27 @@ public final class HTMLRenderer {
   private func renderPropertyList(_ section: JSON, _ node: TopicNode) -> String {
     let defaultTitle = section["kind"]?.stringValue == "properties" ? "Properties" : "Parameters"
     var html = sectionHeading(section["title"]?.stringValue ?? defaultTitle, node)
-    if let content = section["content"]?.arrayValue { html += blocks(content, node) }
-    let items = section["items"]?.arrayValue ?? section["parameters"]?.arrayValue ?? section["responses"]?.arrayValue ?? []
+    if let content = section["content"]?.arrayValue {
+      html += blocks(content, node)
+    }
+    let items = section["items"]?.arrayValue
+      ?? section["parameters"]?.arrayValue
+      ?? section["responses"]?.arrayValue
+      ?? []
     html += "<dl class=\"parameters\">"
     for item in items {
-      var term = "<code>\(Self.escape(item["name"]?.stringValue ?? item["status"].map { "\($0.intValue ?? 0)" } ?? ""))</code>"
+      let name = item["name"]?.stringValue ?? item["status"].map { "\($0.intValue ?? 0)" } ?? ""
+      var term = "<code>\(Self.escape(name))</code>"
       let type = tokens(item["type"].items, node, linkTypes: true)
-      if !type.isEmpty { term += " <code class=\"property-type\">\(type)</code>" }
-      if item["required"]?.boolValue == true { term += " <span class=\"badge\">Required</span>" }
-      if item["deprecated"]?.boolValue == true { term += " <span class=\"badge deprecated\">Deprecated</span>" }
+      if !type.isEmpty {
+        term += " <code class=\"property-type\">\(type)</code>"
+      }
+      if item["required"]?.boolValue == true {
+        term += " <span class=\"badge\">Required</span>"
+      }
+      if item["deprecated"]?.boolValue == true {
+        term += " <span class=\"badge deprecated\">Deprecated</span>"
+      }
       html += "<dt>\(term)</dt><dd>\(blocks(item["content"].items, node))</dd>"
     }
     return html + "</dl>"
@@ -267,8 +325,12 @@ public final class HTMLRenderer {
   
   private func genericSection(_ section: JSON, _ node: TopicNode) -> String {
     var html = ""
-    if let title = section["title"]?.stringValue { html += sectionHeading(title, node) }
-    if let content = section["content"]?.arrayValue { html += blocks(content, node) }
+    if let title = section["title"]?.stringValue {
+      html += sectionHeading(title, node)
+    }
+    if let content = section["content"]?.arrayValue {
+      html += blocks(content, node)
+    }
     return html
   }
   
@@ -276,7 +338,9 @@ public final class HTMLRenderer {
   
   private func renderTopicSections(_ node: TopicNode) -> String {
     let sections = node.page["topicSections"].items
-    guard !sections.isEmpty else { return "" }
+    guard !sections.isEmpty else {
+      return ""
+    }
     var html = sectionHeading("Topics", node)
     for section in sections {
       let title = section["title"]?.stringValue ?? "Topics"
@@ -290,41 +354,55 @@ public final class HTMLRenderer {
       if let discussion = section["discussion"] {
         html += blocks(discussion["content"].items, node)
       }
-      html += topicList(section["identifiers"].items.compactMap(\.stringValue), node, showAbstracts: true)
+      let identifiers = section["identifiers"].items.compactMap(\.stringValue)
+      html += topicList(identifiers, node, showAbstracts: true)
     }
     return html
   }
   
   private func renderRelationships(_ sections: [JSON], _ node: TopicNode) -> String {
-    guard !sections.isEmpty else { return "" }
+    guard !sections.isEmpty else {
+      return ""
+    }
     var html = sectionHeading("Relationships", node)
     for section in sections {
       let title = section["title"]?.stringValue ?? ""
-      html += "<h3 id=\"\(Self.elementID(node.anchorID, title))\" data-keep-with-next>\(Self.escape(title))</h3>"
-      html += topicList(section["identifiers"].items.compactMap(\.stringValue), node, showAbstracts: false)
+      let id = Self.elementID(node.anchorID, title)
+      html += "<h3 id=\"\(id)\" data-keep-with-next>\(Self.escape(title))</h3>"
+      let identifiers = section["identifiers"].items.compactMap(\.stringValue)
+      html += topicList(identifiers, node, showAbstracts: false)
     }
     return html
   }
   
   private func renderSeeAlso(_ sections: [JSON], _ node: TopicNode) -> String {
-    guard !sections.isEmpty else { return "" }
+    guard !sections.isEmpty else {
+      return ""
+    }
     var html = sectionHeading("See Also", node, anchor: "see-also")
     for section in sections {
       if let title = section["title"]?.stringValue {
         html += "<h3 data-keep-with-next>\(Self.escape(title))</h3>"
       }
-      html += topicList(section["identifiers"].items.compactMap(\.stringValue), node, showAbstracts: true)
+      let identifiers = section["identifiers"].items.compactMap(\.stringValue)
+      html += topicList(identifiers, node, showAbstracts: true)
     }
     return html
   }
   
   /// A list of links to other pages, each with an optional abstract.
-  private func topicList(_ identifiers: [String], _ node: TopicNode, showAbstracts: Bool) -> String {
-    guard !identifiers.isEmpty else { return "" }
+  private func topicList(_ identifiers: [String],
+                         _ node: TopicNode,
+                         showAbstracts: Bool) -> String {
+    guard !identifiers.isEmpty else {
+      return ""
+    }
     var html = "<div class=\"topic-list\">"
     for identifier in identifiers {
       let reference = node.references[identifier]
-      let title = reference?["title"]?.stringValue ?? identifier.split(separator: "/").last.map(String.init) ?? identifier
+      let title = reference?["title"]?.stringValue
+        ?? identifier.split(separator: "/").last.map(String.init)
+        ?? identifier
       var label: String
       if let fragments = reference?["fragments"]?.arrayValue, !fragments.isEmpty {
         label = "<code class=\"decl\">\(tokens(fragments, node, linkTypes: false))</code>"
@@ -338,13 +416,19 @@ public final class HTMLRenderer {
       if let href = href(forReference: identifier, node) {
         label = "<a href=\"\(Self.escape(href))\">\(label)</a>"
       }
-      if reference?["deprecated"]?.boolValue == true { label += "<span class=\"badge deprecated\">Deprecated</span>" }
-      if reference?["beta"]?.boolValue == true { label += "<span class=\"badge beta\">Beta</span>" }
+      if reference?["deprecated"]?.boolValue == true {
+        label += "<span class=\"badge deprecated\">Deprecated</span>"
+      }
+      if reference?["beta"]?.boolValue == true {
+        label += "<span class=\"badge beta\">Beta</span>"
+      }
       let abstract = showAbstracts ? inline(reference?["abstract"].items ?? [], node) : ""
         // Keep a title with its abstract, but not with the next item's title.
       let keep = abstract.isEmpty ? "" : " data-keep-with-next"
       html += "<div class=\"topic-item\"><div class=\"topic-item-title\"\(keep)>\(label)</div>"
-      if !abstract.isEmpty { html += "<div class=\"topic-item-abstract\">\(abstract)</div>" }
+      if !abstract.isEmpty {
+        html += "<div class=\"topic-item-abstract\">\(abstract)</div>"
+      }
       html += "</div>"
     }
     return html + "</div>"
@@ -363,19 +447,24 @@ public final class HTMLRenderer {
         if let minutes = section["estimatedTimeInMinutes"]?.intValue {
           html += "<p class=\"small\">Estimated time: \(minutes) min</p>"
         }
-        if let projectFiles = section["projectFiles"]?.stringValue, let href = href(forReference: projectFiles, node) {
+        if let projectFiles = section["projectFiles"]?.stringValue,
+           let href = href(forReference: projectFiles, node) {
           html += "<p class=\"small\"><a href=\"\(Self.escape(href))\">Project files</a></p>"
         }
         return html
       case "volume":
         var html = ""
-        if let name = section["name"]?.stringValue { html += sectionHeading(name, node) }
+        if let name = section["name"]?.stringValue {
+          html += sectionHeading(name, node)
+        }
         html += blocks(section["content"].items, node)
         for chapter in section["chapters"].items {
           let name = chapter["name"]?.stringValue ?? "Chapter"
-          html += "<h3 id=\"\(Self.elementID(node.anchorID, name))\" data-keep-with-next>\(Self.escape(name))</h3>"
+          let id = Self.elementID(node.anchorID, name)
+          html += "<h3 id=\"\(id)\" data-keep-with-next>\(Self.escape(name))</h3>"
           html += blocks(chapter["content"].items, node)
-          html += topicList(chapter["tutorials"].items.compactMap(\.stringValue), node, showAbstracts: true)
+          let identifiers = chapter["tutorials"].items.compactMap(\.stringValue)
+          html += topicList(identifiers, node, showAbstracts: true)
         }
         return html
       case "tasks":
@@ -384,16 +473,21 @@ public final class HTMLRenderer {
           let title = task["title"]?.stringValue ?? "Section \(index + 1)"
           let id = Self.elementID(node.anchorID, task["anchor"]?.stringValue ?? title)
           html += "<p class=\"eyebrow\" data-keep-with-next>Section \(index + 1)</p>"
-          html += "<h2 id=\"\(id)\" class=\"task-title\" data-keep-with-next>\(Self.escape(title))</h2>"
+          html += "<h2 id=\"\(id)\" class=\"task-title\" data-keep-with-next>"
+            + "\(Self.escape(title))</h2>"
           for content in task["contentSection"].items {
             html += blocks(content["content"].items, node)
-            if let media = content["media"]?.stringValue { html += mediaHTML(media, node) }
+            if let media = content["media"]?.stringValue {
+              html += mediaHTML(media, node)
+            }
           }
           html += renderSteps(task["stepsSection"].items, node)
         }
         return html
       case "assessments":
-        var html = sectionHeading("Check Your Understanding", node, anchor: section["anchor"]?.stringValue)
+        var html = sectionHeading("Check Your Understanding",
+                                  node,
+                                  anchor: section["anchor"]?.stringValue)
         for (index, assessment) in section["assessments"].items.enumerated() {
           html += "<div class=\"assessment\"><p class=\"step-label\">Question \(index + 1)</p>"
           html += blocks(assessment["title"].items, node)
@@ -401,8 +495,11 @@ public final class HTMLRenderer {
           html += "<ol class=\"choices\" type=\"A\">"
           for choice in assessment["choices"].items {
             let correct = choice["isCorrect"]?.boolValue == true
-            html += "<li class=\"\(correct ? "correct" : "")\">\(blocks(choice["content"].items, node))"
-            if correct { html += "<span class=\"badge correct\">Correct</span>" }
+            let content = blocks(choice["content"].items, node)
+            html += "<li class=\"\(correct ? "correct" : "")\">\(content)"
+            if correct {
+              html += "<span class=\"badge correct\">Correct</span>"
+            }
             html += "</li>"
           }
           html += "</ol></div>"
@@ -410,7 +507,9 @@ public final class HTMLRenderer {
         return html
       case "callToAction":
         var html = ""
-        if let title = section["title"]?.stringValue { html += sectionHeading(title, node) }
+        if let title = section["title"]?.stringValue {
+          html += sectionHeading(title, node)
+        }
         html += inlineOrBlocks(section["abstract"], node, cssClass: nil)
         if let action = section["action"], action["type"]?.stringValue == "reference",
            let identifier = action["identifier"]?.stringValue {
@@ -419,9 +518,13 @@ public final class HTMLRenderer {
         return html
       case "contentAndMedia", "contentAndMediaGroup":
         var html = ""
-        if let title = section["title"]?.stringValue { html += sectionHeading(title, node) }
+        if let title = section["title"]?.stringValue {
+          html += sectionHeading(title, node)
+        }
         html += blocks(section["content"].items, node)
-        if let media = section["media"]?.stringValue { html += mediaHTML(media, node) }
+        if let media = section["media"]?.stringValue {
+          html += mediaHTML(media, node)
+        }
         for item in section["items"].items { html += renderTutorialSection(item, node) }
         return html
       default:
@@ -442,8 +545,12 @@ public final class HTMLRenderer {
       stepNumber += 1
       html += "<div class=\"step\"><p class=\"step-label\">Step \(stepNumber)</p>"
       html += blocks(item["content"].items, node)
-      if let media = item["media"]?.stringValue { html += mediaHTML(media, node) }
-      if let code = item["code"]?.stringValue { html += fileHTML(code, node) }
+      if let media = item["media"]?.stringValue {
+        html += mediaHTML(media, node)
+      }
+      if let code = item["code"]?.stringValue {
+        html += fileHTML(code, node)
+      }
       html += "<div class=\"small\">\(blocks(item["caption"].items, node))</div>"
       html += "</div>"
     }
@@ -451,7 +558,9 @@ public final class HTMLRenderer {
   }
   
   private func fileHTML(_ identifier: String, _ node: TopicNode) -> String {
-    guard let file = node.references[identifier], file["type"]?.stringValue == "file" else { return "" }
+    guard let file = node.references[identifier], file["type"]?.stringValue == "file" else {
+      return ""
+    }
     var html = ""
     if let name = file["fileName"]?.stringValue {
       html += "<p class=\"code-file-name\">\(Self.escape(name))</p>"
@@ -473,7 +582,9 @@ public final class HTMLRenderer {
     switch item["type"]?.stringValue {
       case "paragraph":
         let content = item["inlineContent"].items
-        if content.count == 1, content[0]["type"]?.stringValue == "image", let id = content[0]["identifier"]?.stringValue {
+        if content.count == 1,
+           content[0]["type"]?.stringValue == "image",
+           let id = content[0]["identifier"]?.stringValue {
           return figure(id, node, caption: content[0]["metadata"]?["abstract"]?.arrayValue)
         }
         return "<p>\(inline(content, node))</p>"
@@ -487,14 +598,18 @@ public final class HTMLRenderer {
         let known = ["note", "tip", "important", "warning", "experiment", "deprecated"]
         let name = item["name"]?.stringValue ?? style.prefix(1).uppercased() + style.dropFirst()
         return "<div class=\"aside aside-\(known.contains(style) ? style : "note")\">"
-        + "<p class=\"aside-label\">\(Self.escape(name))</p>\(blocks(item["content"].items, node))</div>"
+          + "<p class=\"aside-label\">\(Self.escape(name))</p>"
+          + "\(blocks(item["content"].items, node))</div>"
       case "codeListing":
-        return codeListing(item["code"].items.compactMap(\.stringValue), syntax: item["syntax"]?.stringValue)
+        return codeListing(item["code"].items.compactMap(\.stringValue),
+                           syntax: item["syntax"]?.stringValue)
       case "unorderedList":
-        return "<ul>" + item["items"].items.map { "<li>\(blocks($0["content"].items, node))</li>" }.joined() + "</ul>"
+        let items = item["items"].items.map { "<li>\(blocks($0["content"].items, node))</li>" }
+        return "<ul>" + items.joined() + "</ul>"
       case "orderedList":
         let start = item["start"]?.intValue.map { " start=\"\($0)\"" } ?? ""
-        return "<ol\(start)>" + item["items"].items.map { "<li>\(blocks($0["content"].items, node))</li>" }.joined() + "</ol>"
+        let items = item["items"].items.map { "<li>\(blocks($0["content"].items, node))</li>" }
+        return "<ol\(start)>" + items.joined() + "</ol>"
       case "termList":
         var html = "<dl class=\"term-list\">"
         for entry in item["items"].items {
@@ -508,16 +623,20 @@ public final class HTMLRenderer {
         return "<p class=\"small\">\(inline(item["inlineContent"].items, node))</p>"
       case "tabNavigator":
         return item["tabs"].items.map { tab in
-          "<div class=\"tab\"><p class=\"tab-title\" data-keep-with-next>\(Self.escape(tab["title"]?.stringValue ?? ""))</p>"
-          + blocks(tab["content"].items, node) + "</div>"
+          let title = Self.escape(tab["title"]?.stringValue ?? "")
+          return "<div class=\"tab\"><p class=\"tab-title\" data-keep-with-next>\(title)</p>"
+            + blocks(tab["content"].items, node) + "</div>"
         }.joined()
       case "links":
         return topicList(item["items"].items.compactMap(\.stringValue), node, showAbstracts: true)
       case "row":
         let columns = max(item["numberOfColumns"]?.intValue ?? item["columns"].items.count, 1)
-        var html = "<div class=\"row\" style=\"grid-template-columns:repeat(\(columns),minmax(0,1fr))\">"
+        var html = "<div class=\"row\" "
+          + "style=\"grid-template-columns:repeat(\(columns),minmax(0,1fr))\">"
         for column in item["columns"].items {
-          html += "<div style=\"grid-column:span \(max(column["size"]?.intValue ?? 1, 1))\">\(blocks(column["content"].items, node))</div>"
+          let span = max(column["size"]?.intValue ?? 1, 1)
+          let content = blocks(column["content"].items, node)
+          html += "<div style=\"grid-column:span \(span)\">\(content)</div>"
         }
         return html + "</div>"
       case "video":
@@ -527,30 +646,38 @@ public final class HTMLRenderer {
       case "dictionaryExample":
         var html = blocks(item["summary"].items, node)
         if let example = item["example"] {
-          html += codeListing(example["content"].items.compactMap { $0["code"]?.arrayValue }.flatMap { $0 }.compactMap(\.stringValue),
+          html += codeListing(Self.codeLines(of: example),
                               syntax: example["syntax"]?.stringValue ?? "json")
         }
         return html
       case "endpointExample":
         var html = blocks(item["summary"].items, node)
         for part in ["request", "response"] {
-          guard let example = item[part] else { continue }
+          guard let example = item[part] else {
+            continue
+          }
           html += "<p class=\"code-file-name\">\(part.capitalized)</p>"
-          let lines = example["content"].items.compactMap { $0["code"]?.arrayValue }.flatMap { $0 }.compactMap(\.stringValue)
+          let lines = Self.codeLines(of: example)
           html += codeListing(lines, syntax: example["type"]?.stringValue)
         }
         return html
       case "step":
         return renderSteps([item], node)
       default:
-        if let content = item["content"]?.arrayValue { return blocks(content, node) }
-        if let content = item["inlineContent"]?.arrayValue { return "<p>\(inline(content, node))</p>" }
+        if let content = item["content"]?.arrayValue {
+          return blocks(content, node)
+        }
+        if let content = item["inlineContent"]?.arrayValue {
+          return "<p>\(inline(content, node))</p>"
+        }
         return ""
     }
   }
   
   private func inlineOrBlocks(_ value: JSON?, _ node: TopicNode, cssClass: String?) -> String {
-    guard let items = value?.arrayValue, !items.isEmpty else { return "" }
+    guard let items = value?.arrayValue, !items.isEmpty else {
+      return ""
+    }
     let classAttribute = cssClass.map { " class=\"\($0)\"" } ?? ""
     if items.contains(where: { $0["type"]?.stringValue == "paragraph" }) {
       return "<div\(classAttribute)>\(blocks(items, node))</div>"
@@ -558,8 +685,19 @@ public final class HTMLRenderer {
     return "<p\(classAttribute)>\(inline(items, node))</p>"
   }
   
-  private func codeListing(_ lines: [String], syntax: String?, highlightedLines: Set<Int> = []) -> String {
-    let rendered = SyntaxHighlighter.forLanguage(syntax)?.highlight(lines: lines) ?? lines.map(Self.escape)
+  /// The lines of all code blocks of an endpoint or dictionary example.
+  private static func codeLines(of example: JSON) -> [String] {
+    example["content"].items
+      .compactMap { $0["code"]?.arrayValue }
+      .flatMap { $0 }
+      .compactMap(\.stringValue)
+  }
+
+  private func codeListing(_ lines: [String],
+                           syntax: String?,
+                           highlightedLines: Set<Int> = []) -> String {
+    let rendered = SyntaxHighlighter.forLanguage(syntax)?.highlight(lines: lines)
+      ?? lines.map(Self.escape)
     var html = "<pre class=\"code-listing\"><code>"
     for (index, line) in rendered.enumerated() {
       let cssClass = highlightedLines.contains(index + 1) ? "line hl" : "line"
@@ -580,11 +718,18 @@ public final class HTMLRenderer {
         if let data = extended["\(rowIndex)_\(columnIndex)"] {
           let colspan = data["colspan"]?.intValue ?? 1
           let rowspan = data["rowspan"]?.intValue ?? 1
-          if colspan == 0 || rowspan == 0 { continue }
-          if colspan > 1 { attributes += " colspan=\"\(colspan)\"" }
-          if rowspan > 1 { attributes += " rowspan=\"\(rowspan)\"" }
+          if colspan == 0 || rowspan == 0 {
+            continue
+          }
+          if colspan > 1 {
+            attributes += " colspan=\"\(colspan)\""
+          }
+          if rowspan > 1 {
+            attributes += " rowspan=\"\(rowspan)\""
+          }
         }
-        if columnIndex < alignments.count, ["left", "center", "right"].contains(alignments[columnIndex]) {
+        if columnIndex < alignments.count,
+           ["left", "center", "right"].contains(alignments[columnIndex]) {
           attributes += " style=\"text-align:\(alignments[columnIndex])\""
         }
         let isHeader = ((header == "row" || header == "both") && rowIndex == 0)
@@ -600,7 +745,9 @@ public final class HTMLRenderer {
   // MARK: - Media
   
   private func figure(_ identifier: String, _ node: TopicNode, caption: [JSON]?) -> String {
-    guard let image = imageTag(identifier, node, inline: false) else { return "" }
+    guard let image = imageTag(identifier, node, inline: false) else {
+      return ""
+    }
     var html = "<figure>\(image)"
     if let caption, !caption.isEmpty {
       html += "<figcaption>\(inline(caption, node))</figcaption>"
@@ -609,14 +756,17 @@ public final class HTMLRenderer {
   }
   
   private func mediaHTML(_ identifier: String, _ node: TopicNode) -> String {
-    guard let reference = node.references[identifier] else { return "" }
+    guard let reference = node.references[identifier] else {
+      return ""
+    }
     switch reference["type"]?.stringValue {
       case "image":
         return figure(identifier, node, caption: nil)
       case "video":
         // Videos cannot play in a PDF; show the poster frame and a caption instead.
         var html = "<figure class=\"video\">"
-        if let poster = reference["poster"]?.stringValue, let image = imageTag(poster, node, inline: false) {
+        if let poster = reference["poster"]?.stringValue,
+           let image = imageTag(poster, node, inline: false) {
           html += image
         }
         let alt = reference["alt"]?.stringValue.map { ": \(Self.escape($0))" } ?? ""
@@ -628,7 +778,9 @@ public final class HTMLRenderer {
   
   /// An `<img>` for an image reference, preferring the light, high-resolution variant.
   private func imageTag(_ identifier: String, _ node: TopicNode, inline: Bool) -> String? {
-    guard let reference = node.references[identifier] else { return nil }
+    guard let reference = node.references[identifier] else {
+      return nil
+    }
     let variants = reference["variants"].items.compactMap {
       variant -> (url: String, traits: [String])? in
         guard let url = variant["url"]?.stringValue else {
@@ -642,7 +794,9 @@ public final class HTMLRenderer {
       traits.compactMap { $0.hasSuffix("x") ? Int($0.dropLast()) : nil }.first ?? 1
     }
     guard let best = candidates.max(by: { scale($0.traits) < scale($1.traits) }),
-          let url = model.archive.assetURL(best.url) else { return nil }
+          let url = model.archive.assetURL(best.url) else {
+      return nil
+    }
     let alt = Self.escape(reference["alt"]?.stringValue ?? "")
     let source = Self.escape(url.absoluteString)
     let factor = scale(best.traits)
@@ -685,13 +839,17 @@ public final class HTMLRenderer {
         let title = item["title"]?.stringValue ?? destination
         return "<a href=\"\(Self.escape(destination))\">\(Self.escape(title))</a>"
       default:
-        if let content = item["inlineContent"]?.arrayValue { return inline(content, node) }
+        if let content = item["inlineContent"]?.arrayValue {
+          return inline(content, node)
+        }
         return Self.escape(item["text"]?.stringValue ?? item["code"]?.stringValue ?? "")
     }
   }
   
   private func referenceLink(_ item: JSON, _ node: TopicNode) -> String {
-    guard let identifier = item["identifier"]?.stringValue else { return "" }
+    guard let identifier = item["identifier"]?.stringValue else {
+      return ""
+    }
     let reference = node.references[identifier]
     let content: String
     if let overriding = item["overridingTitleInlineContent"]?.arrayValue {
@@ -705,7 +863,8 @@ public final class HTMLRenderer {
       content = Self.isSymbol(reference) || reference?["type"]?.stringValue == "unresolvable"
       ? "<code>\(Self.escape(title))</code>" : Self.escape(title)
     }
-    guard item["isActive"]?.boolValue != false, let href = href(forReference: identifier, node) else {
+    guard item["isActive"]?.boolValue != false,
+          let href = href(forReference: identifier, node) else {
       return content
     }
     return "<a href=\"\(Self.escape(href))\">\(content)</a>"
@@ -728,7 +887,9 @@ public final class HTMLRenderer {
         case "internalParam": "internal-param"
         default: nil
       }
-      guard let cssClass else { return text }
+      guard let cssClass else {
+        return text
+      }
       if linkTypes, kind == "typeIdentifier", let identifier = token["identifier"]?.stringValue,
          let href = href(forReference: identifier, node) {
         return "<a class=\"tok-\(cssClass)\" href=\"\(Self.escape(href))\">\(text)</a>"
@@ -742,14 +903,22 @@ public final class HTMLRenderer {
   /// The link target for a reference: an in-document fragment for pages that are part
   /// of the book, the URL for external links, and `nil` for anything else.
   func href(forReference identifier: String, _ node: TopicNode) -> String? {
-    guard let reference = node.references[identifier] else { return nil }
+    guard let reference = node.references[identifier] else {
+      return nil
+    }
     switch reference["type"]?.stringValue {
       case "link":
         return reference["url"]?.stringValue
       case "topic", "section":
-        guard let url = reference["url"]?.stringValue else { return nil }
-        if url.hasPrefix("http://") || url.hasPrefix("https://") { return url }
-        guard let target = model.node(forPath: url) else { return nil }
+        guard let url = reference["url"]?.stringValue else {
+          return nil
+        }
+        if url.hasPrefix("http://") || url.hasPrefix("https://") {
+          return url
+        }
+        guard let target = model.node(forPath: url) else {
+          return nil
+        }
         if let hash = url.firstIndex(of: "#") {
           let fragment = String(url[url.index(after: hash)...])
           return "#" + Self.elementID(target.anchorID, fragment.removingPercentEncoding ?? fragment)
@@ -781,8 +950,9 @@ public final class HTMLRenderer {
   /// so the page id can always be recovered from the prefix.
   public static func elementID(_ base: String, _ anchor: String) -> String {
     let sanitized = anchor.unicodeScalars.map { scalar -> String in
-      CharacterSet.alphanumerics.contains(scalar) && scalar.isASCII || scalar == "-" || scalar == "_"
-      ? String(scalar) : "_"
+      let allowed = CharacterSet.alphanumerics.contains(scalar) && scalar.isASCII
+        || scalar == "-" || scalar == "_"
+      return allowed ? String(scalar) : "_"
     }.joined()
     return "\(base)-\(sanitized)"
   }

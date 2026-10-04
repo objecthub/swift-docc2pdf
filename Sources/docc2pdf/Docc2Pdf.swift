@@ -43,7 +43,9 @@ struct Docc2Pdf: AsyncParsableCommand {
           help: "Output PDF path. (default: <archive name>.pdf in the current directory)")
   var output: String?
   
-  @Option(help: "Paper size: letter, legal, a4, a5, or WIDTHxHEIGHT in points. (default: based on your region)")
+  @Option(help: ArgumentHelp(
+    "Paper size: letter, legal, a4, a5, or WIDTHxHEIGHT in points. "
+      + "(default: based on your region)"))
   var paper: String?
   
   @Option(help: "Page margin in points.")
@@ -69,7 +71,8 @@ struct Docc2Pdf: AsyncParsableCommand {
   
   @Option(name: .customLong("root"),
           help: ArgumentHelp(
-            "Only include this documentation path and the pages it curates, e.g. /documentation/mykit/mytype. Repeatable.",
+            "Only include this documentation path and the pages it curates, "
+              + "e.g. /documentation/mykit/mytype. Repeatable.",
             valueName: "path"))
   var roots: [String] = []
   
@@ -99,13 +102,16 @@ struct Docc2Pdf: AsyncParsableCommand {
   }
   
   func run() async throws {
-    let archiveURL = URL(fileURLWithPath: (archive as NSString).expandingTildeInPath).standardizedFileURL
+    let archivePath = (archive as NSString).expandingTildeInPath
+    let archiveURL = URL(fileURLWithPath: archivePath).standardizedFileURL
     var isDirectory: ObjCBool = false
-    guard FileManager.default.fileExists(atPath: archiveURL.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+    guard FileManager.default.fileExists(atPath: archiveURL.path, isDirectory: &isDirectory),
+          isDirectory.boolValue else {
       throw ValidationError("No archive directory at \(archiveURL.path).")
     }
-    let outputURL = URL(fileURLWithPath: (output.map { ($0 as NSString).expandingTildeInPath })
-                        ?? archiveURL.deletingPathExtension().lastPathComponent + ".pdf").standardizedFileURL
+    let outputPath = output.map { ($0 as NSString).expandingTildeInPath }
+      ?? archiveURL.deletingPathExtension().lastPathComponent + ".pdf"
+    let outputURL = URL(fileURLWithPath: outputPath).standardizedFileURL
     
     var options = RenderOptions()
     options.paper = paper.flatMap(PaperSize.init(name:)) ?? .localeDefault
@@ -130,7 +136,8 @@ struct Docc2Pdf: AsyncParsableCommand {
         URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath)
       })
     let seconds = Date().timeIntervalSince(started).formatted(.number.precision(.fractionLength(1)))
-    print("Wrote \(outputURL.path) (\(summary.pageCount) pages, \(summary.topicCount) topics, \(summary.linkCount) links) in \(seconds)s")
+    print("Wrote \(outputURL.path) (\(summary.pageCount) pages, \(summary.topicCount) topics, "
+          + "\(summary.linkCount) links) in \(seconds)s")
   }
 }
 

@@ -159,6 +159,21 @@ Tests/DoccToPdfCoreTests/
   - `xcrun docc convert M.docc --additional-symbol-graph-dir sg --output-path M.doccarchive --fallback-display-name M --fallback-bundle-identifier com.example.M`
   - Include asides, tables, `@Row`, `@TabNavigator`, `@Small`, images (`name.png`, `name@2x.png`, `name~dark@2x.png`), and `.tutorial` files with `@Steps`/`@Code`/`@Assessments`.
 
+## Code style
+
+These rules apply to Swift and also to the JavaScript embedded in `PaginationScript.swift`:
+
+- Indent with 2 spaces. Continuation lines get one extra indentation level, or are aligned with the opening parenthesis for wrapped argument lists.
+- Every `if` puts its then-branch on its own line, and every `else` branch is on its own line too. No `if`/`else` fits on a single line, not even `if x { return }`. In JavaScript, every `if` uses braces.
+- A `guard` keeps its condition and its `else` body on separate lines: `guard cond else {`, then the body, then `}`. When the condition is wrapped, put `else {` on the last condition line and indent the body to the `guard`'s level.
+- No line is longer than 100 characters. To wrap a line, use one of these:
+  - introduce a local `let`;
+  - put arguments on separate lines;
+  - start continuation lines with `+`, `??`, `&&`, or `.method`;
+  - split string literals with `+`.
+  Long keyword `Set` literals are flowed across lines, and long CSS rules become multi-line blocks.
+- Every Swift file starts with the Apache 2.0 copyright header. In `Package.swift` the header comes after the `// swift-tools-version` line.
+
 ## Pitfalls
 
 - Render JSON uses `JSON` from **DynamicJSON** and does not reintroduce an ad hoc JSON type.
