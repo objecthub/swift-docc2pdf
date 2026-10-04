@@ -37,14 +37,14 @@
 /// `resetBatch` removes the spacers again, restoring the original layout.
 enum PaginationScript {
     /// Resolves once web fonts and images have finished loading.
-    static let waitForResources = """
+  static let waitForResources = """
     await document.fonts.ready;
     await Promise.all(Array.from(document.images).map(img => img.complete ? null :
         new Promise(resolve => { img.onload = resolve; img.onerror = resolve; })));
     return true;
     """
 
-    static let install = #"""
+  static let install = #"""
     window.__pager = (() => {
       let pageHeight = 0, boxes = [], pages = [], breaks = [], spacers = [];
       const docHeight = () => Math.ceil(document.documentElement.scrollHeight);

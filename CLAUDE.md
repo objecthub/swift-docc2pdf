@@ -1,13 +1,13 @@
-# CLAUDE.md
+# Docc2Pdf Development Instructions for Claude Code
 
 `docc2pdf` is a macOS command-line tool, written in Swift 6, that converts a DocC archives (`.doccarchive`) into paginated PDFs. The PDFs have a cover page, a table of contents (TOC) with page numbers, an outline (bookmarks), clickable internal and external links, running headers, and page numbers. The README covers user-facing usage. This file records the design, the invariants, and the hard-won findings you need when extending the tool or fixing bugs.
 
 ## Commands
 
 ```bash
-swift build                      # debug build → .build/debug/docc2pdf
-swift build -c release           # release build → .build/release/docc2pdf
-swift test                       # Swift Testing suite (includes an end-to-end PDF test using WebKit)
+swift build                # debug build → .build/debug/docc2pdf
+swift build -c release     # release build → .build/release/docc2pdf
+swift test                 # Swift Testing suite (includes an end-to-end PDF test using WebKit)
 .build/debug/docc2pdf Samples/YamlKit.doccarchive -o /tmp/y.pdf -v --save-html /tmp/y.html
 ```
 

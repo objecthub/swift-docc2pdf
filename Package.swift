@@ -22,28 +22,37 @@
 import PackageDescription
 
 let package = Package(
-    name: "DoccToPdf",
-    platforms: [.macOS(.v13)],
-    products: [
-        .executable(name: "docc2pdf", targets: ["docc2pdf"]),
-        .library(name: "DoccToPdfCore", targets: ["DoccToPdfCore"]),
-    ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
-        .package(url: "https://github.com/objecthub/swift-dynamicjson", from: "1.0.2"),
-    ],
-    targets: [
-        .target(
-            name: "DoccToPdfCore",
-            dependencies: [.product(name: "DynamicJSON", package: "swift-dynamicjson")]
-        ),
-        .executableTarget(
-            name: "docc2pdf",
-            dependencies: [
-                "DoccToPdfCore",
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ]
-        ),
-        .testTarget(name: "DoccToPdfCoreTests", dependencies: ["DoccToPdfCore"]),
-    ]
+  name: "Docc2Pdf",
+  platforms: [
+    .macOS(.v13)
+  ],
+  products: [
+    .executable(name: "docc2pdf", targets: ["docc2pdf"]),
+    .library(name: "DoccToPdfCore", targets: ["DoccToPdfCore"]),
+  ],
+  dependencies: [
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+    .package(url: "https://github.com/objecthub/swift-dynamicjson", from: "1.0.2"),
+  ],
+  targets: [
+    .target(
+      name: "DoccToPdfCore",
+      dependencies: [
+        .product(name: "DynamicJSON", package: "swift-dynamicjson")
+      ]
+    ),
+    .executableTarget(
+      name: "docc2pdf",
+      dependencies: [
+        "DoccToPdfCore",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      ]
+    ),
+    .testTarget(
+      name: "DoccToPdfCoreTests",
+      dependencies: [
+        "DoccToPdfCore"
+      ]
+    ),
+  ]
 )

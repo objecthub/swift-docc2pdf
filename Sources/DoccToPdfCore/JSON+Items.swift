@@ -26,11 +26,15 @@ import DynamicJSON
 // through generic fallbacks.
 
 extension JSON {
-    /// The array value, or an empty array when the value is not an array.
-    var items: [JSON] { arrayValue ?? [] }
+  /// The array value, or an empty array when the value is not an array.
+  var items: [JSON] {
+    self.arrayValue ?? []
+  }
 }
 
 extension Optional where Wrapped == JSON {
-    /// The array value, or an empty array when the value is missing or not an array.
-    var items: [JSON] { self?.arrayValue ?? [] }
+  /// The array value, or an empty array when the value is missing or not an array.
+  var items: [JSON] {
+    self?.arrayValue ?? []
+  }
 }
