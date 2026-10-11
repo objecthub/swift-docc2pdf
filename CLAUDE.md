@@ -122,6 +122,11 @@ Tests/DoccToPdfCoreTests/
   - anything else (unresolvable, or outside a `--root` subset) → plain text.
   - Symbol references render as `<code>`; type identifiers in declarations link with class `tok-type`.
 - **Images:** the renderer picks the non-dark variant with the highest scale. A 2x image is emitted as `srcset="url 2x"` with **no `src`**, so it lays out at half size but keeps full resolution. CSS caps images at `max-height: 0.9 × content height`.
+- **Leaf symbols:** a symbol page without curated children gets `class="… leaf"`. `Stylesheet.swift`
+  gives these a compact reference-style layout (smaller title/header/declaration/code listings,
+  abstract at body size, grey separator bar, no rule above h2), scoped with `.topic.leaf …`
+  selectors; `.topic.leaf` itself is 0.9em and the See Also section (`div.see-also`) is smaller
+  still. Type pages and articles keep the larger layout.
 - **Titles:** `breakableTitle` inserts `<wbr>` after `.`, `(`, `:`, `,` and at camel-case boundaries. That's why PDFKit text extraction may show a title split, as in "convertFromKebab … Case".
 - **`PageBreakMode.auto`:** the first content article breaks if there is a cover or TOC. Otherwise a page starts a new PDF page if its depth is ≤ 1, it isn't a symbol, or it curates children.
 - **TOC depth:** a node's groups and children are listed while `node.depth < tocDepth`. Roots are depth 0.

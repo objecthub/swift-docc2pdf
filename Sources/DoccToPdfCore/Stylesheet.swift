@@ -103,13 +103,34 @@ enum Stylesheet {
         font-size: 2.4em; font-weight: 700; letter-spacing: -0.01em; line-height: 1.12;
         margin: 0 0 0.35em; border: 0; padding: 0;
       }
-      .topic.leaf .topic-title { font-size: 1.75em; }
       .abstract { font-size: 1.2em; line-height: 1.42; margin: 0 0 0.6em; }
       .platforms {
         display: flex; flex-wrap: wrap; gap: 0.25em 1.2em; font-size: 0.85em; color: #6e6e73;
         margin: 0.6em 0 0;
       }
-      
+
+      /* Leaf symbols (properties, methods, cases, …) use a compact reference-style layout */
+      .topic.leaf { font-size: 0.9em; margin-bottom: 1.2em; }
+      .topic.flow.leaf {
+        border-top: 1.6px solid #8e8e93; margin-top: 1.2em; padding-top: 0.8em;
+      }
+      .topic.leaf .topic-header { margin-bottom: 0.7em; }
+      .topic.leaf .breadcrumbs { font-size: 0.72em; margin-bottom: 0.7em; }
+      .topic.leaf .eyebrow { font-size: 0.85em; }
+      .topic.leaf .topic-title { font-size: 1.3em; margin-bottom: 0.4em; }
+      .topic.leaf .abstract { font-size: 1em; line-height: inherit; margin-bottom: 0.5em; }
+      .topic.leaf .platforms { font-size: 0.78em; }
+      .topic.leaf .declaration {
+        font-size: 0.82em; line-height: 1.45; padding: 0.55em 0.9em; margin-bottom: 1em;
+      }
+      .topic.leaf pre.code-listing { font-size: 0.78em; }
+      .topic.leaf h2 {
+        font-size: 1.2em; margin-top: 1.1em; padding-top: 0.45em; border-top-color: transparent;
+      }
+      .topic.leaf h3 { font-size: 1.05em; }
+      /* 0.9 × 0.89 ≈ 0.8 of the regular body size */
+      .topic.leaf .see-also { font-size: 0.89em; }
+
       .declaration {
         background: #f5f5f7; border: 1px solid #e3e3e8; border-radius: 8px; padding: 0.8em 1.1em;
         margin: 0 0 1.4em;

@@ -379,7 +379,8 @@ public final class HTMLRenderer {
     guard !sections.isEmpty else {
       return ""
     }
-    var html = sectionHeading("See Also", node, anchor: "see-also")
+    var html = "<div class=\"see-also\">"
+      + sectionHeading("See Also", node, anchor: "see-also")
     for section in sections {
       if let title = section["title"]?.stringValue {
         html += "<h3 data-keep-with-next>\(Self.escape(title))</h3>"
@@ -387,7 +388,7 @@ public final class HTMLRenderer {
       let identifiers = section["identifiers"].items.compactMap(\.stringValue)
       html += topicList(identifiers, node, showAbstracts: true)
     }
-    return html
+    return html + "</div>"
   }
   
   /// A list of links to other pages, each with an optional abstract.
