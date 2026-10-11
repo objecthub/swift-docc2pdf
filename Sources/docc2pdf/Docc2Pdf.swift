@@ -57,6 +57,12 @@ struct Docc2Pdf: AsyncParsableCommand {
   @Option(help: "When documentation pages start a new PDF page: auto, all, or none.")
   var pageBreaks: PageBreakMode = .auto
   
+  @Flag(name: .shortAndLong,
+        help: ArgumentHelp(
+          "Order pages like the table of contents and the outline: place each topic group "
+            + "right before the pages it lists, so page numbers increase monotonically."))
+  var monotonic = false
+  
   @Option(help: "Depth of pages listed in the table of contents (0 = top-level pages only).")
   var tocDepth: Int = 1
   
@@ -118,6 +124,7 @@ struct Docc2Pdf: AsyncParsableCommand {
     options.margin = margin
     options.fontSize = fontSize
     options.pageBreaks = pageBreaks
+    options.monotonic = monotonic
     options.tocDepth = noToc ? nil : tocDepth
     options.includeCover = !noCover
     options.title = title

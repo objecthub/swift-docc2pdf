@@ -73,6 +73,11 @@ public struct RenderOptions: Sendable {
   /// Body text size in points.
   public var fontSize: Double = 10
   public var pageBreaks: PageBreakMode = .auto
+  /// Orders the pages like the table of contents and the outline: every topic group becomes
+  /// a section placed right before the pages it lists, so page numbers increase monotonically
+  /// when walking the contents. By default, a page lists all of its topic groups in one
+  /// "Topics" section and the pages of the groups follow afterwards.
+  public var monotonic = false
   /// Maximum page depth listed in the table of contents (0 = top-level pages only),
   /// or `nil` to omit the table of contents.
   public var tocDepth: Int? = 1

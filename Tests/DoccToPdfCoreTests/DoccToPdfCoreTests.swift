@@ -124,6 +124,50 @@ import Testing
     #expect(none.contains("<article class=\"topic flow\" id=\"t2\""))
   }
   
+  @Test func keepsAllTopicGroupsInTheOwningPageByDefault() throws {
+    let html = try render()
+    #expect(html.contains("<h2 id=\"t1-Topics\" data-keep-with-next>Topics</h2>"))
+    #expect(html.contains("<h3 id=\"t1-Essentials\" data-keep-with-next>Essentials</h3>"))
+    #expect(!html.contains("<section class=\"group-section"))
+    // The pages follow the root page without topic group sections in between.
+    let root = try #require(html.range(of: "id=\"t1\"")).lowerBound
+    let topics = try #require(html.range(of: "id=\"t1-Topics\"")).lowerBound
+    let guide = try #require(html.range(of: "id=\"t2\"")).lowerBound
+    #expect(root < topics && topics < guide)
+  }
+  
+  @Test func placesTopicGroupsBeforeTheirPagesWhenMonotonic() throws {
+    let html = try render { $0.monotonic = true }
+    func position(_ marker: String) throws -> String.Index {
+      try #require(html.range(of: marker)).lowerBound
+    }
+    // The root's topic group follows the root page and precedes the pages it contains.
+    let root = try position("<article class=\"topic page-break\" id=\"t1\"")
+    let group = try position("<section class=\"group-section page-break\" id=\"t1-Essentials\"")
+    let guide = try position("id=\"t2\"")
+    let widget = try position("id=\"t3\"")
+    #expect(root < group && group < guide && guide < widget)
+    // The members of a type are introduced by a group that flows with them.
+    let members = try position(
+      "<section class=\"group-section flow\" id=\"t3-Instance_Properties\"")
+    let size = try position("id=\"t4\"")
+    #expect(widget < members && members < size)
+    // The pages no longer carry a combined "Topics" block.
+    #expect(!html.contains(">Topics</h2>"))
+    #expect(html.contains("<h2 class=\"group-title\">Essentials</h2>"))
+    #expect(html.contains("data-running-title=\"Essentials\""))
+    // The running header of a flowing group names the type it belongs to.
+    #expect(html.contains("id=\"t3-Instance_Properties\" data-running-title=\"Widget\""))
+  }
+  
+  @Test func monotonicTopicGroupsFollowThePageBreakMode() throws {
+    let all = try render { $0.monotonic = true; $0.pageBreaks = .all }
+    #expect(all.contains(
+      "<section class=\"group-section page-break\" id=\"t3-Instance_Properties\""))
+    let none = try render { $0.monotonic = true; $0.pageBreaks = .none }
+    #expect(none.contains("<section class=\"group-section flow\" id=\"t1-Essentials\""))
+  }
+  
   @Test func breakableTitles() {
     #expect(HTMLRenderer.breakableTitle("Foo.barBaz") == "Foo.<wbr>bar<wbr>Baz")
     #expect(HTMLRenderer.breakableTitle("a<b") == "a&lt;b")
@@ -224,6 +268,8 @@ import Testing
     let output = fixture.url.deletingLastPathComponent().appendingPathComponent("TestKit.pdf")
     var options = RenderOptions()
     options.paper = .letter
+    // The ordering checks below rely on topic groups being placed before their pages.
+    options.monotonic = true
     let summary = try await PDFGenerator(options: options)
       .generate(archiveURL: fixture.url, outputURL: output)
     
@@ -256,6 +302,24 @@ import Testing
     let children = (0..<essentials.numberOfChildren).compactMap { essentials.child(at: $0)?.label }
     #expect(children == ["Getting Started", "Widget"])
     
+    // The pages follow the structure of the outline and the table of contents: the root
+    // page, then its group, then the group's pages.
+    func pageIndex(_ item: PDFOutline?) throws -> Int {
+      document.index(for: try #require(item?.destination?.page))
+    }
+    let testKit = try #require(outline.child(at: 1))
+    let rootPage = try pageIndex(testKit)
+    let essentialsPage = try pageIndex(essentials)
+    let guidePage = try pageIndex(essentials.child(at: 0))
+    let widgetPage = try pageIndex(essentials.child(at: 1))
+    #expect(rootPage < essentialsPage && essentialsPage < guidePage && guidePage < widgetPage)
+    #expect(try #require(essentials.destination?.page).string?.contains("Essentials") == true)
+    let properties = try #require(essentials.child(at: 1)?.child(at: 0))
+    #expect(properties.label == "Instance Properties")
+    let propertiesPage = try pageIndex(properties)
+    let sizePage = try pageIndex(properties.child(at: 0))
+    #expect(widgetPage <= propertiesPage && propertiesPage <= sizePage)
+    
     // Each outline destination lands on a page showing that title.
     for index in 0..<outline.numberOfChildren {
       let item = try #require(outline.child(at: index))
@@ -283,5 +347,27 @@ import Testing
     // Every page's text is unique to it: no hidden duplicates of other pages.
     let hits = document.findString("Paragraph 40 with", withOptions: [])
     #expect(hits.count == 1)
+  }
+  
+  @Test func listsTopicGroupsInTheOwningPageByDefault() async throws {
+    let fixture = try TestArchive()
+    defer { fixture.remove() }
+    let output = fixture.url.deletingLastPathComponent().appendingPathComponent("TestKit.pdf")
+    var options = RenderOptions()
+    options.paper = .letter
+    try await PDFGenerator(options: options).generate(archiveURL: fixture.url, outputURL: output)
+    
+    let document = try #require(PDFDocument(url: output))
+    let outline = try #require(document.outlineRoot)
+    let testKit = try #require(outline.child(at: 1))
+    let essentials = try #require(testKit.child(at: 0))
+    #expect(essentials.label == "Essentials")
+    func pageIndex(_ item: PDFOutline?) throws -> Int {
+      document.index(for: try #require(item?.destination?.page))
+    }
+    // The group's entry points into the root page's "Topics" section, before the pages.
+    let rootPage = try pageIndex(testKit)
+    #expect(try pageIndex(essentials) == rootPage)
+    #expect(rootPage < (try pageIndex(essentials.child(at: 0))))
   }
 }

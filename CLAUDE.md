@@ -11,7 +11,7 @@ swift test                 # Swift Testing suite (includes an end-to-end PDF tes
 .build/debug/docc2pdf Samples/YamlKit.doccarchive -o /tmp/y.pdf -v --save-html /tmp/y.html
 ```
 
-- `Samples/YamlKit.doccarchive` is a real archive: 645 render JSON pages, about 209 PDF pages. Use it as the main regression input. A good release run takes about 1.5 s and produces about 2 MB, with 2,992 links (one per line a link spans), 840 outline items, and no broken links. `-v` prints these figures plus a page breakdown by category.
+- `Samples/YamlKit.doccarchive` is a real archive: 645 render JSON pages, about 209 PDF pages (219 with `-m`). Use it as the main regression input. A good release run takes about 1.5 s and produces about 2 MB, with 2,992 links (3,529 with `-m`, which adds breadcrumbs to the group sections; one link per line it spans), 840 outline items, and no broken links. `-v` prints these figures plus a page breakdown by category.
 - Debug builds print the WebKit log line "Inspection is enabled by default…" to stderr. It's harmless and doesn't appear in release builds.
 - Toolchain: Swift 6 language mode with strict concurrency, macOS 13+, dependencies `swift-argument-parser` (CLI) and `swift-dynamicjson` (the `DynamicJSON` framework provides the `JSON` type). Write all code warning-free.
 - Commit only when the user asks.
@@ -44,7 +44,7 @@ Tests/DoccToPdfCoreTests/
    - The model does a depth-first traversal of `topicSections[].identifiers` and of tutorial `sections[kind=volume].chapters[].tutorials`. Each identifier is resolved through `page.references[id].url`.
    - A page curated in several places appears once, at its first visit.
    - With no `--root`, pages that are never reached are appended as extra roots. With `--root`, only the requested subtrees are included.
-2. **HTML.** `HTMLRenderer.render()` produces one HTML string. It is written to a temporary file and loaded with `loadFileURL(_, allowingReadAccessTo: "/")`, because images are absolute `file://` URLs into the archive.
+2. **HTML.** `HTMLRenderer.render()` produces one HTML string. Pages are emitted in `orderedNodes` order (depth-first). By default each page renders all of its topic groups in one "Topics" section (`renderTopicSections`), so a group's TOC/outline entry points into its owner and the group's pages follow later. With `--monotonic` (`RenderOptions.monotonic`), each topic group is instead emitted as a `<section class="group-section">` between its owning page and the group's child pages. That makes the page order identical to the TOC and outline structure (root → group → children), so their page numbers increase monotonically. It is written to a temporary file and loaded with `loadFileURL(_, allowingReadAccessTo: "/")`, because images are absolute `file://` URLs into the archive.
 3. **Load.** The generator waits for `document.fonts.ready` and for all images, then installs `PaginationScript.install`.
 4. **Paginate.** `__pager.paginate(contentHeight)` returns `{height, pageCount, linkTargets}`. It also fills in the TOC page numbers.
 5. **Render in batches** of `pagesPerBatch` (100). For each batch:
@@ -108,7 +108,8 @@ Tests/DoccToPdfCoreTests/
 ## HTML conventions (renderer ↔ script ↔ generator contract)
 
 - **Page ids:** each page is `<article class="topic …" id="tN" data-running-title="…">`, with N following `orderedNodes` order starting at 1. Page ids **never contain `-`**. Sub-anchors are `HTMLRenderer.elementID(base, anchor)`, which produces `tN-<sanitized>`; the fallback logic in the script and the generator depends on this.
-- **Other fixed ids:** the cover is `#cover`, the TOC is `#toc` (the outline's "Contents" entry), and topic groups use `group.anchorID` (= `elementID(node.anchorID, section anchor)`).
+- **Other fixed ids:** the cover is `#cover`, the TOC is `#toc` (the outline's "Contents" entry), and topic groups use `group.anchorID` (= `elementID(node.anchorID, section anchor)`) as their element id (the h3 in the "Topics" section, or the `<section class="group-section">` with `--monotonic`).
+- **Topic groups (`--monotonic` only):** `renderGroupSection` renders a group's title, abstract, discussion, and topic list. It is `page-break` for the groups of depth-0 pages (the groups in the default TOC) in `auto` mode, always for `all`, never for `none`; other groups are `flow`. Its `data-running-title` is the group title for a `page-break` section and the owner's title otherwise. A page's Relationships and See Also stay in its article and therefore come before its groups. The groups of tutorial chapters have no `TopicGroup.section`: the overview page still renders them itself.
 - **Classes the script relies on:**
   - `page-break` (forced break);
   - `flow` (continuous topic with a top rule), `leaf` (smaller title);

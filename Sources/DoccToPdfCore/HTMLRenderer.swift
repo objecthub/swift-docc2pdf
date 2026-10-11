@@ -63,8 +63,29 @@ public final class HTMLRenderer {
     if let depth = options.tocDepth {
       html += renderTableOfContents(maxDepth: depth)
     }
-    for (index, node) in model.orderedNodes.enumerated() {
-      html += renderTopic(node, isFirst: index == 0)
+    if options.monotonic {
+      // Pages follow the curation depth-first, each topic group coming right before the
+      // pages it contains; the table of contents and the outline have the same structure.
+      var isFirst = true
+      func emit(_ node: TopicNode) {
+        html += renderTopic(node, isFirst: isFirst)
+        isFirst = false
+        for group in node.groups {
+          if let section = group.section {
+            html += renderGroupSection(group, section: section, owner: node)
+          }
+          for child in group.topics {
+            emit(child)
+          }
+        }
+      }
+      for root in model.roots {
+        emit(root)
+      }
+    } else {
+      for (index, node) in model.orderedNodes.enumerated() {
+        html += renderTopic(node, isFirst: index == 0)
+      }
     }
     html += "</body></html>\n"
     return html
@@ -132,6 +153,25 @@ public final class HTMLRenderer {
     }
   }
   
+  /// Topic groups of top-level pages (the ones listed in the table of contents) are the
+  /// parts of the book and start a new page; the groups of types flow.
+  private func groupStartsNewPage(_ owner: TopicNode) -> Bool {
+    switch options.pageBreaks {
+      case .all: return true
+      case .none: return false
+      case .auto: return owner.depth == 0
+    }
+  }
+  
+  private func breadcrumbs(_ chain: [TopicNode]) -> String {
+    guard !chain.isEmpty else {
+      return ""
+    }
+    let crumbs = chain.map { "<a href=\"#\($0.anchorID)\">\(Self.escape($0.title))</a>" }
+    let separator = " <span class=\"sep\">›</span> "
+    return "<nav class=\"breadcrumbs\">\(crumbs.joined(separator: separator))</nav>"
+  }
+  
   func renderTopic(_ node: TopicNode, isFirst: Bool) -> String {
     let page = node.page
     let breaks = startsNewPage(node, isFirst: isFirst)
@@ -145,12 +185,7 @@ public final class HTMLRenderer {
     html += "data-running-title=\"\(Self.escape(node.title))\">"
     
     html += "<header class=\"topic-header\" data-keep-with-next>"
-    let ancestors = node.ancestors
-    if !ancestors.isEmpty {
-      let crumbs = ancestors.map { "<a href=\"#\($0.anchorID)\">\(Self.escape($0.title))</a>" }
-      let separator = " <span class=\"sep\">›</span> "
-      html += "<nav class=\"breadcrumbs\">\(crumbs.joined(separator: separator))</nav>"
-    }
+    html += breadcrumbs(node.ancestors)
     if let eyebrow = roleHeading(of: node) {
       html += "<p class=\"eyebrow\">\(Self.escape(eyebrow))</p>"
     }
@@ -173,7 +208,9 @@ public final class HTMLRenderer {
     for section in page["sections"].items {
       html += renderTutorialSection(section, node)
     }
-    html += renderTopicSections(node)
+    if !options.monotonic {
+      html += renderTopicSections(node)
+    }
     html += renderRelationships(page["relationshipsSections"].items, node)
     html += renderSeeAlso(page["seeAlsoSections"].items, node)
     html += "</article>\n"
@@ -334,8 +371,10 @@ public final class HTMLRenderer {
     return html
   }
   
-  // MARK: Topic, relationship, and see-also sections
+  // MARK: Topic groups, relationship, and see-also sections
   
+  /// All topic groups of a page in one "Topics" section (unless the groups are rendered
+  /// as sections of their own, see `renderGroupSection`).
   private func renderTopicSections(_ node: TopicNode) -> String {
     let sections = node.page["topicSections"].items
     guard !sections.isEmpty else {
@@ -358,6 +397,29 @@ public final class HTMLRenderer {
       html += topicList(identifiers, node, showAbstracts: true)
     }
     return html
+  }
+  
+  /// A topic group as a section of its own: its title, abstract, and discussion, and
+  /// the list of its pages. It is placed right before those pages.
+  private func renderGroupSection(_ group: TopicGroup,
+                                  section: JSON,
+                                  owner: TopicNode) -> String {
+    let breaks = groupStartsNewPage(owner)
+    // A heading that starts a page shows the group in the running header; otherwise the
+    // header keeps naming the page the group belongs to, not the previous page's last member.
+    let running = breaks ? group.title : owner.title
+    var html = "<section class=\"group-section \(breaks ? "page-break" : "flow")\" "
+      + "id=\"\(group.anchorID)\" data-running-title=\"\(Self.escape(running))\">"
+    html += "<header class=\"group-header\" data-keep-with-next>"
+      + breadcrumbs(owner.ancestors + [owner])
+      + "<h2 class=\"group-title\">\(Self.escape(group.title))</h2></header>"
+    html += inlineOrBlocks(section["abstract"], owner, cssClass: "group-abstract")
+    if let discussion = section["discussion"] {
+      html += blocks(discussion["content"].items, owner)
+    }
+    let identifiers = section["identifiers"].items.compactMap(\.stringValue)
+    html += topicList(identifiers, owner, showAbstracts: true)
+    return html + "</section>\n"
   }
   
   private func renderRelationships(_ sections: [JSON], _ node: TopicNode) -> String {

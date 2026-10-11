@@ -72,6 +72,10 @@ public final class TopicNode {
 public struct TopicGroup {
   public let title: String
   public let anchorID: String
+  /// The page's `topicSections` entry the group was made from (its abstract, discussion,
+  /// and identifiers), or `nil` for groups that the page renders itself, such as the
+  /// chapters of a tutorial overview.
+  public let section: JSON?
   /// Children placed in the book under this group (pages curated in several
   /// places appear only under the first one).
   public internal(set) var topics: [TopicNode]
@@ -124,9 +128,9 @@ public final class DocumentModel {
                          anchorID: "t\(orderedNodes.count + 1)", depth: depth, parent: parent)
     nodesByPath[key] = node
     orderedNodes.append(node)
-    for (title, anchor, identifiers) in Self.childGroups(of: page) {
+    for (title, anchor, section, identifiers) in Self.childGroups(of: page) {
       let anchorID = HTMLRenderer.elementID(node.anchorID, anchor)
-      var group = TopicGroup(title: title, anchorID: anchorID, topics: [])
+      var group = TopicGroup(title: title, anchorID: anchorID, section: section, topics: [])
       for identifier in identifiers {
         guard let url = page["references"]?[identifier]?["url"]?.stringValue,
               url.hasPrefix("/") else {
@@ -145,17 +149,19 @@ public final class DocumentModel {
   /// chapters for tutorial overviews.
   static func childGroups(of page: JSON) -> [(title: String,
                                               anchor: String,
+                                              section: JSON?,
                                               identifiers: [String])] {
-    var groups: [(String, String, [String])] = []
+    var groups: [(String, String, JSON?, [String])] = []
     for section in page["topicSections"].items {
       let title = section["title"]?.stringValue ?? "Topics"
       let anchor = section["anchor"]?.stringValue ?? title
-      groups.append((title, anchor, section["identifiers"].items.compactMap(\.stringValue)))
+      groups.append((title, anchor, section,
+                     section["identifiers"].items.compactMap(\.stringValue)))
     }
     for section in page["sections"].items where section["kind"]?.stringValue == "volume" {
       for chapter in section["chapters"].items {
         let title = chapter["name"]?.stringValue ?? "Chapter"
-        groups.append((title, title, chapter["tutorials"].items.compactMap(\.stringValue)))
+        groups.append((title, title, nil, chapter["tutorials"].items.compactMap(\.stringValue)))
       }
     }
     return groups

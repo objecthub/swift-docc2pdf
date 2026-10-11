@@ -109,6 +109,18 @@ enum Stylesheet {
         margin: 0.6em 0 0;
       }
 
+      /* Topic groups are sections of their own, placed right before the pages they list */
+      .group-section { margin: 0 0 1.6em; }
+      .group-section.flow {
+        border-top: 1px solid #d2d2d7; padding-top: 1em; margin-top: 1.8em;
+      }
+      .group-header { margin-bottom: 0.8em; }
+      .group-title {
+        font-size: 1.6em; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15;
+        margin: 0 0 0.3em; border: 0; padding: 0;
+      }
+      .group-section.page-break .group-title { font-size: 2.2em; }
+
       /* Leaf symbols (properties, methods, cases, …) use a compact reference-style layout */
       .topic.leaf { font-size: 0.9em; margin-bottom: 1.2em; }
       .topic.flow.leaf {

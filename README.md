@@ -42,6 +42,7 @@ This writes `MyKit.pdf` to the current directory. Common options:
 | `--margin <points>` | Page margin (default 54). |
 | `--font-size <points>` | Body text size (default 10). |
 | `--page-breaks auto\|all\|none` | `auto` starts articles, tutorials, and types on a new page and lets members flow; `all` puts every page on a new page; `none` flows everything continuously. |
+| `-m, --monotonic` | Order the pages like the table of contents and the outline. Each topic group (e.g. "Essentials") becomes a section placed right before the pages it lists, so page numbers increase monotonically when walking the contents. Without it, a page lists all of its topic groups in one "Topics" section and the pages of the groups follow afterwards. |
 | `--toc-depth <n>` | Depth of the table of contents (default 1); the outline always contains every page. |
 | `--no-toc`, `--no-cover` | Omit the table of contents or the cover page. |
 | `--title <text>` | Document title (default: the archive's display name). |
