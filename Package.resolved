@@ -1,5 +1,5 @@
 {
-  "originHash" : "76cce830d157a5f23aca2fb8a29e3d382fb41d4d809460edbf907cf7135d245a",
+  "originHash" : "b1d8629e110b43cdf5d8f78f1e483d1c40a17331e9a4269a19faca8e8eba0608",
   "pins" : [
     {
       "identity" : "swift-argument-parser",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/objecthub/swift-dynamicjson",
       "state" : {
-        "revision" : "9648f32126ade414b00b9551c27870d4ad9b168c",
-        "version" : "1.0.2"
+        "revision" : "8721505f61cdbc2298852d2e84b17f5c97346be8",
+        "version" : "2.0.0"
       }
     }
   ],

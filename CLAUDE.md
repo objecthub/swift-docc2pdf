@@ -11,7 +11,7 @@ swift test                 # Swift Testing suite (includes an end-to-end PDF tes
 .build/debug/docc2pdf Samples/YamlKit.doccarchive -o /tmp/y.pdf -v --save-html /tmp/y.html
 ```
 
-- `Samples/YamlKit.doccarchive` is a real archive: 645 render JSON pages, about 256 PDF pages. Use it as the main regression input. A good release run takes about 1.5 s and produces about 2 MB, with 2,992 links, 840 outline items, and no broken links.
+- `Samples/YamlKit.doccarchive` is a real archive: 645 render JSON pages, about 209 PDF pages. Use it as the main regression input. A good release run takes about 1.5 s and produces about 2 MB, with 2,992 links (one per line a link spans), 840 outline items, and no broken links. `-v` prints these figures plus a page breakdown by category.
 - Debug builds print the WebKit log line "Inspection is enabled by default…" to stderr. It's harmless and doesn't appear in release builds.
 - Toolchain: Swift 6 language mode with strict concurrency, macOS 13+, dependencies `swift-argument-parser` (CLI) and `swift-dynamicjson` (the `DynamicJSON` framework provides the `JSON` type). Write all code warning-free.
 - Commit only when the user asks.
@@ -27,6 +27,7 @@ Sources/DoccToPdfCore/
   Options.swift              RenderOptions, PaperSize, PageBreakMode
   HTMLRenderer.swift         RenderNode JSON → one HTML document (cover, TOC, one <article> per page)
   Stylesheet.swift           Print CSS (DocC look); 1 CSS px == 1 PDF pt
+  Statistics.swift           DocumentStatistics (page counts by symbolKind/kind/role) and Summary.report() for `-v`
   SyntaxHighlighter.swift    Line-based highlighter (Swift, C family, scripts, shell-like); DocC archives contain no highlighting
   PaginationScript.swift     JavaScript installed in the page as window.__pager (paginate / layoutBatch / resetBatch)
   PDFGenerator.swift         @MainActor pipeline: WKWebView load → paginate → batched export → Core Graphics composition

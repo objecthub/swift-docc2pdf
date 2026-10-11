@@ -35,7 +35,7 @@ struct TestArchive {
       ]],
     ])
     try page("/documentation/testkit", kind: "symbol", role: "collection", title: "TestKit",
-             abstract: "A kit for <testing>.",
+             symbolKind: "module", abstract: "A kit for <testing>.",
              content: [
               ["type": "heading", "level": 2, "text": "Overview", "anchor": "overview"],
               ["type": "paragraph", "inlineContent": [
@@ -68,7 +68,7 @@ struct TestArchive {
              title: "Getting Started", abstract: "Learn the basics.",
              content: longContent(paragraphs: 80))
     try page("/documentation/testkit/widget", kind: "symbol", role: "symbol", title: "Widget",
-             abstract: "A widget.", content: [],
+             symbolKind: "struct", abstract: "A widget.", content: [],
              declaration: [["kind": "keyword", "text": "struct"], ["kind": "text", "text": " "],
                            ["kind": "identifier", "text": "Widget"]],
              topics: [
@@ -76,7 +76,7 @@ struct TestArchive {
                "identifiers": ["doc://TestKit/documentation/TestKit/Widget/size"]],
              ])
     try page("/documentation/testkit/widget/size", kind: "symbol", role: "symbol", title: "size",
-             abstract: "The size.", content: [],
+             symbolKind: "property", abstract: "The size.", content: [],
              declaration: [["kind": "keyword", "text": "var"], ["kind": "text", "text": " "],
                            ["kind": "identifier", "text": "size"], ["kind": "text", "text": ": "],
                            ["kind": "typeIdentifier", "text": "Widget",
@@ -124,7 +124,8 @@ struct TestArchive {
     ],
   ] }
   
-  private func page(_ path: String, kind: String, role: String, title: String, abstract: String,
+  private func page(_ path: String, kind: String, role: String, title: String,
+                    symbolKind: String? = nil, abstract: String,
                     content: [[String: Any]], declaration: [[String: Any]]? = nil,
                     topics: [[String: Any]] = []) throws {
     var sections: [[String: Any]] = []
@@ -135,10 +136,12 @@ struct TestArchive {
     if !content.isEmpty {
       sections.append(["kind": "content", "content": content])
     }
+    var metadata: [String: Any] = ["title": title, "role": role]
+    metadata["symbolKind"] = symbolKind
     let json: [String: Any] = [
       "kind": kind,
       "identifier": ["url": "doc://TestKit" + path, "interfaceLanguage": "swift"],
-      "metadata": ["title": title, "role": role],
+      "metadata": metadata,
       "abstract": [["type": "text", "text": abstract]],
       "primaryContentSections": sections,
       "topicSections": topics,

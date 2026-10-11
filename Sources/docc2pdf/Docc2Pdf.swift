@@ -81,7 +81,7 @@ struct Docc2Pdf: AsyncParsableCommand {
             valueName: "path"))
   var saveHtml: String?
   
-  @Flag(name: .shortAndLong, help: "Print progress information.")
+  @Flag(name: .shortAndLong, help: "Print progress information and statistics.")
   var verbose = false
   
   func validate() throws {
@@ -138,6 +138,9 @@ struct Docc2Pdf: AsyncParsableCommand {
     let seconds = Date().timeIntervalSince(started).formatted(.number.precision(.fractionLength(1)))
     print("Wrote \(outputURL.path) (\(summary.pageCount) pages, \(summary.topicCount) topics, "
           + "\(summary.linkCount) links) in \(seconds)s")
+    if verbose {
+      print("\nStatistics:\n" + summary.report())
+    }
   }
 }
 

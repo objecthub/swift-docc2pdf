@@ -37,7 +37,19 @@ public final class PDFGenerator {
   public struct Summary: Sendable {
     public var pageCount: Int
     public var topicCount: Int
-    public var linkCount: Int
+    /// Links within the document (one per line a link spans) and to external URLs.
+    public var internalLinkCount: Int
+    public var externalLinkCount: Int
+    /// Entries of the PDF outline (bookmarks), including nested ones.
+    public var outlineItemCount: Int
+    /// Size of the PDF file in bytes.
+    public var fileSize: Int
+    /// The documentation pages by category.
+    public var statistics: DocumentStatistics
+
+    public var linkCount: Int {
+      internalLinkCount + externalLinkCount
+    }
   }
   
   public let options: RenderOptions
@@ -99,7 +111,8 @@ public final class PDFGenerator {
                           title: renderer.documentTitle,
                           into: context,
                           state: state)
-    if let outline = makeOutline(model: model, state: state) {
+    let outline = makeOutline(model: model, state: state)
+    if let outline {
       CGPDFContextSetOutline(context, outline as CFDictionary)
     }
     context.closePDF()
@@ -108,7 +121,11 @@ public final class PDFGenerator {
     }
     return Summary(pageCount: pagination.pageCount,
                    topicCount: model.orderedNodes.count,
-                   linkCount: state.linkCount)
+                   internalLinkCount: state.internalLinkCount,
+                   externalLinkCount: state.externalLinkCount,
+                   outlineItemCount: outline.map(Self.outlineItemCount) ?? 0,
+                   fileSize: output.length,
+                   statistics: DocumentStatistics(model: model))
   }
   
   // MARK: - Web view
@@ -141,8 +158,9 @@ public final class PDFGenerator {
     let destinationNames: Set<String>
     let outlineTargets: Set<String>
     var outlinePositions: [String: (page: Int, y: Double)] = [:]
-    var linkCount = 0
-    
+    var internalLinkCount = 0
+    var externalLinkCount = 0
+
     init(destinationNames: Set<String>, outlineTargets: Set<String>) {
       self.destinationNames = destinationNames
       self.outlineTargets = outlineTargets
@@ -261,12 +279,11 @@ public final class PDFGenerator {
               continue
             }
             context.setDestination(id as CFString, for: rect)
+            state.internalLinkCount += 1
           } else if let url = URL(string: link.href), url.scheme != nil {
             context.setURL(url as CFURL, for: rect)
-          } else {
-            continue
+            state.externalLinkCount += 1
           }
-          state.linkCount += 1
         }
         context.endPDFPage()
       }
@@ -378,6 +395,12 @@ public final class PDFGenerator {
     }
     top += model.roots.compactMap(topicItem)
     return top.isEmpty ? nil : [kCGPDFOutlineChildren as String: top]
+  }
+
+  /// The number of entries below an outline node, including nested ones.
+  private static func outlineItemCount(_ node: [String: Any]) -> Int {
+    let children = node[kCGPDFOutlineChildren as String] as? [[String: Any]] ?? []
+    return children.reduce(children.count) { $0 + outlineItemCount($1) }
   }
 }
 

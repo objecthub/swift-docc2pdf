@@ -18,6 +18,7 @@
 //  limitations under the License.
 //
 
+import DynamicJSON
 import Foundation
 import PDFKit
 import Testing
@@ -130,6 +131,55 @@ import Testing
   }
 }
 
+@Suite struct StatisticsTests {
+  @Test func countsFixturePagesByCategory() throws {
+    let fixture = try TestArchive()
+    defer { fixture.remove() }
+    let model = try DocumentModel(archive: DocumentationArchive(url: fixture.url))
+    let statistics = DocumentStatistics(model: model)
+    #expect(statistics.total == 5)
+    #expect(statistics.entries(in: .pages) == [
+      .init(group: .pages, label: "Articles", count: 2),
+    ])
+    #expect(statistics.count(of: "Modules") == 1)
+    #expect(statistics.count(of: "Structures") == 1)
+    #expect(statistics.count(of: "Properties") == 1)
+    #expect(statistics.count(of: "Classes") == 0)
+    #expect(statistics.entries(in: .other).isEmpty)
+  }
+
+  @Test func classifiesSymbolKindsAndFallsBack() {
+    func symbol(_ kind: JSON?, heading: JSON? = nil) -> JSON {
+      var metadata: [String: JSON] = [:]
+      metadata["symbolKind"] = kind
+      metadata["roleHeading"] = heading
+      return ["kind": "symbol", "metadata": JSON.object(metadata)]
+    }
+    let collection: JSON = ["kind": "article", "metadata": ["role": "collectionGroup"]]
+    let statistics = DocumentStatistics(pages: [
+      symbol("struct"), symbol("class"), symbol("class"), symbol("enum"), symbol("protocol"),
+      symbol("method", heading: "Instance Method"), symbol("method", heading: "Type Method"),
+      symbol("func"), symbol("property"), symbol("var"), symbol("init"), symbol("case"),
+      symbol("op"), symbol("subscript"), symbol("typealias"),
+      symbol("deinit", heading: "Deinitializer"), symbol(nil),
+      collection, collection, ["kind": "article", "metadata": ["role": "article"]],
+    ])
+    #expect(statistics.total == 20)
+    #expect(statistics.count(of: "Classes") == 2)
+    #expect(statistics.count(of: "Methods") == 3)
+    #expect(statistics.count(of: "Properties") == 2)
+    #expect(statistics.count(of: "Type aliases") == 1)
+    #expect(statistics.count(of: "API collections") == 2)
+    #expect(statistics.count(of: "Articles") == 1)
+    #expect(statistics.count(of: "Deinitializers") == 1)
+    #expect(statistics.count(of: "Other symbols") == 1)
+    // Pages come first, then types, then members, then everything else.
+    #expect(statistics.entries.map(\.group)
+      == [.pages, .pages, .types, .types, .types, .types, .types, .members, .members, .members,
+          .members, .members, .members, .other, .other])
+  }
+}
+
 @Suite struct SyntaxHighlighterTests {
   @Test func highlightsSwift() throws {
     let highlighter = try #require(SyntaxHighlighter.forLanguage("swift"))
@@ -181,6 +231,17 @@ import Testing
     #expect(document.pageCount == summary.pageCount)
     #expect(summary.pageCount >= 5)
     #expect(summary.topicCount == 5)
+    #expect(summary.statistics.total == 5)
+    #expect(summary.internalLinkCount > 5)
+    #expect(summary.externalLinkCount == 1)
+    #expect(summary.linkCount == summary.internalLinkCount + summary.externalLinkCount)
+    // Contents, TestKit, Essentials, Getting Started, Widget, Instance Properties, size, Orphan.
+    #expect(summary.outlineItemCount == 8)
+    let attributes = try FileManager.default.attributesOfItem(atPath: output.path)
+    #expect(summary.fileSize == (attributes[.size] as? Int))
+    let report = summary.report()
+    #expect(report.contains("PDF pages"))
+    #expect(report.contains("Structures"))
     let title = document.documentAttributes?[PDFDocumentAttribute.titleAttribute] as? String
     #expect(title == "TestKit")
     let page = try #require(document.page(at: 0))

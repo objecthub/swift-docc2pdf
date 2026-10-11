@@ -24,7 +24,7 @@ import PackageDescription
 let package = Package(
   name: "Docc2Pdf",
   platforms: [
-    .macOS(.v13)
+    .macOS(.v14)
   ],
   products: [
     .executable(name: "docc2pdf", targets: ["docc2pdf"]),
@@ -32,7 +32,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
-    .package(url: "https://github.com/objecthub/swift-dynamicjson", from: "1.0.2"),
+    .package(url: "https://github.com/objecthub/swift-dynamicjson", from: "2.0.0"),
   ],
   targets: [
     .target(

@@ -47,7 +47,7 @@ This writes `MyKit.pdf` to the current directory. Common options:
 | `--title <text>` | Document title (default: the archive's display name). |
 | `--root <path>` | Only include a subtree, e.g. `--root /documentation/mykit/mytype`. Repeatable. |
 | `--save-html <path>` | Also write the intermediate HTML, for debugging styles. |
-| `-v, --verbose` | Print progress. |
+| `-v, --verbose` | Print progress and, after the run, statistics: PDF pages, file size, links, outline items, and the number of articles, types (structures, classes, enumerations, …), and members (methods, properties, …). |
 
 To produce an archive from a Swift package, use the
 [Swift-DocC plugin](https://github.com/swiftlang/swift-docc-plugin)
